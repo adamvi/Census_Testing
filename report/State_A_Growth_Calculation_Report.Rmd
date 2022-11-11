@@ -1,0 +1,103 @@
+---
+title: Student Growth Percentiles Calculations
+subtitle: Re-evaluating Annual Census Testing
+appendix-prefix: "B"
+date: November 2022
+author:
+- name: Adam Van Iwaarden
+  affiliation: "`r ifelse(grepl('working|draft', params$format), 'Center for Assessment', '')`"
+- name: Leslie Keng
+  affiliation: "`r ifelse(grepl('working|draft', params$format), 'Center for Assessment', '')`"
+- name: Emma Klugman
+  affiliation: Harvard University
+bibliography: "`r cfaDocs:::cfa_shared_res('bib/cfa.bib')`"
+link-citations: yes
+toc: yes
+toc-title: "`r ifelse(grepl('appendix', params$format), 'Appendix Contents', 'Report Contents')`"
+paged-footnotes: yes
+---
+
+<!--
+  This document was written by Adam R. Van Iwaarden for the Gates-Walton Foundations
+    First Draft:  November 7, 2022
+    Current Draft:  November 10, 2022
+-->
+
+```{r setup, echo = FALSE, include = FALSE}
+  ###   Load R packages and functions required for HTML table creation silently.
+  ###   Load SGP and other packages here to avoid messages.
+  require(data.table)
+  require(SGPdata)
+  require(SGP)
+
+  ###   set a global knitr options
+  knitr::opts_chunk$set(
+    cache.path = file.path("_cache", "SGP_Calc"),
+    message = FALSE,
+    warning = FALSE,
+    prompt = FALSE  #  Avoid the "R>" and "R+" in code output for WP format
+  )
+knitr::opts_chunk$set(TRUE)
+  ###   Utility functions
+  ord = \(x) { # <sup>th</sup>
+    o <- toOrdinal::toOrdinal(as.numeric(x))
+    return(paste0(x, "<sup>", substr(o, nchar(o)-1, nchar(o)), "</sup>"))
+  }
+```
+
+```{asis, echo = grepl('working|draft', tolower(params$format))}
+---
+keywords: "draft -- do not cite"
+abstract:
+  This appendix contains the code used to prepare and format the data required
+  for each condition of the **\"Re-evaluating the Efficiency and Efficacy of
+  Annual Census Standardized Testing for Accountability Purposes\"** study.
+  Each condition requires the data to be formatted in a consistent manner, and
+  addition variables to be created. With the properly formatted and amended
+  data, we then proceed with the Student Growth Percentiles (SGP) analyses and
+  results aggregations.
+---
+```
+
+```{r, echo = FALSE, results = "asis", eval = grepl("final", tolower(params$format))}
+  inside.cover <- knitr::knit_child(input = cfaDocs:::cfa_paged_res("cfa/rmd/abstract_extra_yaml.Rmd"), quiet = TRUE)
+  # no block text (`abstract: |-`)
+  # single quote text (inside.cover), and use double-single quotes ('') in abstract_extra_yaml.Rmd
+
+cat(paste0("
+---
+abstract: '", sub("\n\n  ", "", inside.cover), "'
+---
+"))
+```
+
+```{asis, echo = grepl("final", tolower(params$format))}
+# Executive summary
+
+This appendix contains the code used to prepare and format the data required
+for each condition of the **"Re-evaluating the Efficiency and Efficacy of
+Annual Census Standardized Testing for Accountability Purposes"** study.
+Each condition requires the data to be formatted in a consistent manner, and
+addition variables to be created. With the properly formatted and amended
+data, we then proceed with the Student Growth Percentiles (SGP) analyses and
+results aggregations.
+```
+
+
+```{r data-prep-r, echo = FALSE}
+  knitr::spin_child("../State_A/State_A_Data_LONG.R")
+```
+
+```{r sgp-analysis-0, echo = FALSE}
+  knitr::spin_child("../State_A/State_A_SGP_Analyses.R")
+```
+
+```{r aggr-v1, echo = FALSE}
+  knitr::spin_child("../State_A/State_A_Aggregation.R")
+```
+
+<!--  References  -->
+
+# References {-}
+::: {#refs}
+:::
