@@ -53,8 +53,9 @@ setnames(State_A_Data_LONG, "SCALE_SCORE_without_COVID_IMPACT", "SCALE_SCORE")
 #+ data-prep-rename, echo = TRUE, purl = TRUE
 setnames(
   State_A_Data_LONG,
-  c("ETHNICITY", "FREE_REDUCED_LUNCH_STATUS", "ELL_STATUS", "IEP_STATUS"),
-  c("Race", "EconDis", "EL", "SWD")
+  c("ETHNICITY", "FREE_REDUCED_LUNCH_STATUS", "ELL_STATUS", "IEP_STATUS",
+    "SCHOOL_NUMBER"),
+  c("Race", "EconDis", "EL", "SWD", "SchoolID")
 )
 State_A_Data_LONG[, Race := as.character(Race)]
 State_A_Data_LONG[Race == "African American", Race := "Black"]

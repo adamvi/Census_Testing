@@ -91,7 +91,7 @@ sch_summary_cnd_0 <-
           Z_Status = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3),
           Z_Growth = round(mean(qnorm(SGP_Cnd_0/100), na.rm = TRUE), 3)
         ),
-        keyby = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER")
+        keyby = c("YEAR", "CONTENT_AREA", "SchoolID")
     ]
 
 #+ agg-sim-conds, echo = FALSE, purl = TRUE
@@ -109,7 +109,7 @@ sch_summary_cnd_1b <-
           Z_Growth_1b = round(mean(qnorm(SGP_Cnd_1b/100), na.rm = TRUE), 3)
           # T_Growth = round(mean(qt(SGP_Cnd_1b/100, df = .N-1), na.rm = TRUE), 3), # t distribution vs normal
         ),
-        keyby = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER")
+        keyby = c("YEAR", "CONTENT_AREA", "SchoolID")
     ]
 
 sch_summary_cnd_1c <-
@@ -127,9 +127,9 @@ sch_summary_cnd_1c <-
           Z_Status_1c = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3),
           Z_Growth_1c = round(mean(qnorm(SGP_Cnd_1c/100), na.rm = TRUE), 3)
         ),
-        keyby = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER")
+        keyby = c("YEAR", "CONTENT_AREA", "SchoolID")
         # substitute `by` arg - useful check to that we're pulling the correct subsets for aggregation:
-        # keyby = c("YEAR", "CONTENT_AREA", "GRADE", "SCHOOL_NUMBER")
+        # keyby = c("YEAR", "CONTENT_AREA", "GRADE", "SchoolID")
     ]
 
 sch_summary_cnd_2 <-
@@ -145,7 +145,7 @@ sch_summary_cnd_2 <-
           Z_Status_2 = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3),
           Z_Growth_2 = round(mean(qnorm(SGP_Cnd_2/100), na.rm = TRUE), 3)
         ),
-        keyby = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER")
+        keyby = c("YEAR", "CONTENT_AREA", "SchoolID")
     ]
 
 sch_summary_cnd_3 <-
@@ -161,7 +161,7 @@ sch_summary_cnd_3 <-
           Z_Status_3 = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3),
           Z_Growth_3 = round(mean(qnorm(SGP_Cnd_3/100), na.rm = TRUE), 3)
         ),
-        keyby = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER")
+        keyby = c("YEAR", "CONTENT_AREA", "SchoolID")
     ]
 
 #' You may notice that there are more summary calculations than what will be
@@ -171,8 +171,8 @@ sch_summary_cnd_3 <-
 #' Here are two schools from the condition 0 table:
 #'
 #+ agg-cond-0-ex, echo = TRUE, purl = TRUE
-sch_summary_cnd_0[SCHOOL_NUMBER %in% c(1001, 3801)] |>
-    setkey(SCHOOL_NUMBER) |> print()
+sch_summary_cnd_0[SchoolID %in% c(1001, 3801)] |>
+    setkey(SchoolID) |> print()
 
 #' At some point we will probably want to combine the condition aggregations
 #' into a single table so that we can do direct condition comparisons. We can
@@ -195,13 +195,13 @@ composite_summary[,
 ]
 
 #  School No. '1001' - changes in Growth N count
-composite_summary[SCHOOL_NUMBER == 1001,
+composite_summary[SchoolID == 1001,
   c("YEAR", "CONTENT_AREA",
     grep("GrowthN", names(composite_summary), value = TRUE)
   ), with = FALSE
 ]
 #  School No. '1001' - Growth (Z-SGP) summaries
-composite_summary[SCHOOL_NUMBER == 1001,
+composite_summary[SchoolID == 1001,
     c("YEAR", "CONTENT_AREA",
 # All relevant aggregations at once:
 # sort(grep("Z_Growth|Z_Status", names(composite_summary), value = TRUE))
@@ -209,7 +209,7 @@ composite_summary[SCHOOL_NUMBER == 1001,
     ), with = FALSE
 ]
 #  School No. '1001' - Status (Z-proficient %) summaries
-composite_summary[SCHOOL_NUMBER == 1001,
+composite_summary[SchoolID == 1001,
     c("YEAR", "CONTENT_AREA",
       grep("Z_Status", names(composite_summary), value = TRUE)
     ), with = FALSE
@@ -234,17 +234,17 @@ composite_summary[SCHOOL_NUMBER == 1001,
           Mean_Score = round(mean(Z_SCORE, na.rm = TRUE), 2),
           Z_Status = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3)
         ),
-        keyby = c("YEAR", "CONTENT_AREA", "GRADE", "SCHOOL_NUMBER")
+        keyby = c("YEAR", "CONTENT_AREA", "GRADE", "SchoolID")
     ]
 
 #  Create lagged variables (1 year lag):
 setkeyv(
   sch_summary_cnd_1a,
-  c("SCHOOL_NUMBER", "CONTENT_AREA", "YEAR", "GRADE")
+  c("SchoolID", "CONTENT_AREA", "YEAR", "GRADE")
 )
 cfaTools::getShiftedValues(
     sch_summary_cnd_1a,
-    shift_group = c("SCHOOL_NUMBER", "CONTENT_AREA"),
+    shift_group = c("SchoolID", "CONTENT_AREA"),
     shift_variable = c("TotalN", "Mean_Score", "Z_Status"),
     shift_amount = 1L
 )
@@ -263,7 +263,7 @@ sch_summary_cnd_1a[,
 ]
 
 #' Here is our example school's improvement numbers
-sch_summary_cnd_1a[SCHOOL_NUMBER == 1001,
+sch_summary_cnd_1a[SchoolID == 1001,
     c(key(sch_summary_cnd_1a)[-1],
       "TotalN_Change", "Mean_Score_Change", "Z_Status_Change"
     ), with = FALSE
@@ -282,7 +282,7 @@ schoolAggrGator =
   function(
     data_table,
     growth.var,
-    groups = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER")
+    groups = c("YEAR", "CONTENT_AREA", "SchoolID")
   ) {
     data_table[,
       # the list of summaries can be reduced/increased/amended as needed:
@@ -316,7 +316,7 @@ schoolAggrGator(
     data_table =
       State_A_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8,],
     growth.var = "SGP_Cnd_0",
-    groups = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER", "EconDis")
+    groups = c("YEAR", "CONTENT_AREA", "SchoolID", "EconDis")
 )
 
 #' In order to do all the demographic summaries at once, we can combine calls
@@ -330,34 +330,34 @@ demog_cond_0 <-
           data_table =
             State_A_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8,],
           growth.var = "SGP_Cnd_0",
-          groups = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER", "Race")
+          groups = c("YEAR", "CONTENT_AREA", "SchoolID", "Race")
         ) |> setnames("Race", "Group"),
         schoolAggrGator(
           data_table =
             State_A_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8,],
           growth.var = "SGP_Cnd_0",
-          groups = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER", "EconDis")
+          groups = c("YEAR", "CONTENT_AREA", "SchoolID", "EconDis")
         ) |> setnames("EconDis", "Group"),
         schoolAggrGator(
           data_table =
             State_A_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8,],
           growth.var = "SGP_Cnd_0",
-          groups = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER", "EL")
+          groups = c("YEAR", "CONTENT_AREA", "SchoolID", "EL")
         ) |> setnames("EL", "Group"),
         schoolAggrGator(
           data_table =
             State_A_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8,],
           growth.var = "SGP_Cnd_0",
-          groups = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER", "SWD")
+          groups = c("YEAR", "CONTENT_AREA", "SchoolID", "SWD")
         ) |> setnames("SWD", "Group")
       )
     )
 
 #' Here a subset of the output from the example school:
 demog_cond_0[
-  SCHOOL_NUMBER == 1001 & YEAR == 2019
+  SchoolID == 1001 & YEAR == 2019
 ][,
-  c("YEAR", "SCHOOL_NUMBER", "MGP", "Mean_Score") := NULL
+  c("YEAR", "SchoolID", "MGP", "Mean_Score") := NULL
 ][]
 
 #' Another example of how to combine the aggregations along with output from a
@@ -372,15 +372,15 @@ demog_cond0 <-
           data_table =
             State_A_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8, ],
           growth.var = "SGP_Cnd_0",
-          groups = c("YEAR", "CONTENT_AREA", "SCHOOL_NUMBER", f)
+          groups = c("YEAR", "CONTENT_AREA", "SchoolID", f)
         ) |> setnames(f, "Group")
     }
   ) |> rbindlist()
 
 demog_cond0[
-  SCHOOL_NUMBER == 3801 & YEAR == 2019
+  SchoolID == 3801 & YEAR == 2019
 ][,
-  c("YEAR", "SCHOOL_NUMBER", "MGP", "Mean_Score") := NULL
+  c("YEAR", "SchoolID", "MGP", "Mean_Score") := NULL
 ][]
 
 #' Either of the demographic aggregation and combination code chunks above can
