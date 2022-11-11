@@ -29,7 +29,12 @@ require(data.table)
 #' Things we need to do...
 #'
 #+ data-prep-getdata, echo = TRUE, purl = TRUE
-# First load and rename/remove SCALE_SCORE* variables included in the data
+# Load raw GA data
+
+# Make SchoolID unique - based on SGP code from GA Milestones
+Georgia_Data_LONG[, SchoolID := as.numeric(SYSTEM_ID)*10000 + as.numeric(SCHOOL_ID)]
+Georgia_Data_LONG[which(as.numeric(SYSTEM_ID) > 1000), SchoolID := as.numeric(SYSTEM_ID)]
+Georgia_Data_LONG[, SchoolID := as.integer(SchoolID)]
 
 
 #+ data-prep-rename, echo = TRUE, purl = TRUE
