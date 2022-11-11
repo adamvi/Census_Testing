@@ -85,15 +85,15 @@ results aggregations.
 
 
 ```{r data-prep-r, echo = FALSE}
-  knitr::spin_child("../State_A/State_A_Data_LONG.R")
+  knitr::spin_child("../State_A/Phase_1_Data-State_A.R")
 ```
 
 ```{r sgp-analysis-0, echo = FALSE}
-  knitr::spin_child("../State_A/State_A_SGP_Analyses.R")
+  knitr::spin_child("../State_A/Phase_2_Analysis-State_A.R")
 ```
 
 ```{r aggr-v1, echo = FALSE}
-  knitr::spin_child("../State_A/State_A_Aggregation.R")
+  knitr::spin_child("../State_A/Phase_3_Aggregation-State_A.R")
 ```
 
 <!--  References  -->
