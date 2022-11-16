@@ -4,6 +4,8 @@
 ####                   Data Cleaning and Prep -- State A                   ####
 ####                                                                       ####
 ###############################################################################
+if (!dir.exists("./Data/Cleaned_Data"))
+    dir.create("./Data/Cleaned_Data", recursive = TRUE)
 
 #' #  Data cleaning and preparation
 #'
@@ -39,9 +41,8 @@ require(data.table)
 #'
 #+ data-prep-getdata, echo = TRUE, purl = TRUE
 # First load and rename/remove SCALE_SCORE* variables included in the data
-State_A_Data_LONG <- copy(SGPdata::sgpData_LONG_COVID)[YEAR < 2020]
-State_A_Data_LONG[, SCALE_SCORE := NULL]
-setnames(State_A_Data_LONG, "SCALE_SCORE_without_COVID_IMPACT", "SCALE_SCORE")
+State_A_Data_LONG <- copy(SGPdata::sgpData_LONG_COVID)[YEAR < 2023]
+
 
 #' ***NOTE TO LESLIE & EMMA***
 #' 
@@ -59,65 +60,61 @@ setnames(
 )
 State_A_Data_LONG[, Race := as.character(Race)]
 State_A_Data_LONG[Race == "African American", Race := "Black"]
+State_A_Data_LONG[Race == "Other", Race := "Multiracial"]
+
 State_A_Data_LONG[, EconDis := gsub("Free Reduced Lunch", "FRL", EconDis)]
+State_A_Data_LONG[, SWD := gsub("IEP", "SWD", SWD)]
+State_A_Data_LONG[, EL := gsub("ELL", "EL", EL)]
 
 State_A_Data_LONG[,
-  c("GENDER", "DISTRICT_NUMBER", "DISTRICT_NAME", "SCHOOL_NAME") := NULL
+  c("SCALE_SCORE_without_COVID_IMPACT", "GENDER",
+    "DISTRICT_NUMBER", "DISTRICT_NAME", "SCHOOL_NAME"
+  ) := NULL
 ]
 
-#' ## Additional variables for aggregated results
+
+#' ### Create `VALID_CASE` and invalidate duplicates
 #'
-#' A standardized score variable and an achievement proficiency indicator are
-#' required for school level aggregations, final analyses and results
-#' comparisons. The standardized scale score variable is scaled by each
-#' ***year by subject by grade*** test mean and standard deviation^[The original `SCALE_SCORE` variable is used in the SGP calculations.].
+#' The `SGP` package requires a variable named `VALID_CASE` with values set to
+#' either "VALID_CASE" or "INVALID_CASE". This is helpful in identifying cases
+#' that are problematic for any number of reasons (duplicate records, invalid
+#' ID types, missing scores or subject/grade values, etc.). Any record flagged
+#' as an "INVALID_CASE" will be excluded from any SGP analyses (but remain in
+#' the data for possible later use in other aggregations).
 #'
-#' *NOTE:* I am doing this here, but it could easily be done before the
-#' aggregation/summarization step. It is NOT required as any part of the growth
-#' analyses.
-#' 
-#+ data-prep-zscore, echo = TRUE, purl = TRUE
-##    Standardize SCALE_SCORE by CONTENT_AREA and GRADE using 2019 norms
-State_A_Data_LONG[,
-  Z_SCORE := scale(SCALE_SCORE),
-  by = c("YEAR", "CONTENT_AREA", "GRADE")
-]
+#+ data-prep-vc, echo = TRUE, purl = TRUE, eval = FALSE
+# Create `VALID_CASE` if it does not exist:
+State_A_Data_LONG[, VALID_CASE := "VALID_CASE"]
 
-#' A simple '`1/0`' binary indicator for proficiency will allow us to compute
-#' descriptive statistics (e.g., percent proficient) easily and consistently
-#' across all states included in the report.
+#  Check for record duplicates:
+setkey(State_A_Data_LONG,
+    VALID_CASE, CONTENT_AREA, GRADE, YEAR, ID, SCALE_SCORE)
+setkey(State_A_Data_LONG,
+    VALID_CASE, CONTENT_AREA, GRADE, YEAR, ID)
+# Total Dups:
+State_A_Data_LONG |> duplicated(by = key(State_A_Data_LONG)) |> sum()
+#  If duplicates, keep the highest score (if any non-NA exist)
+dupl <- duplicated(State_A_Data_LONG, by = key(State_A_Data_LONG))
+State_A_Data_LONG[which(dupl)-1, VALID_CASE := "INVALID_CASE"]
+
+#  Subset the data to remove invalid student records
+State_A_Data_LONG <- State_A_Data_LONG[VALID_CASE == "VALID_CASE"]
+
+#' ##  Save data
 #'
-#+ data-prep-prof, echo = TRUE, purl = TRUE
-##    Proficient/Not (1/0) binary indicator.
-State_A_Data_LONG[,
-  PROFICIENCY := fcase(
-    ACHIEVEMENT_LEVEL %in% c("Partially Proficient", "Unsatisfactory"), 0L,
-    ACHIEVEMENT_LEVEL %in% c("Advanced", "Proficient"), 1L
-  )
-]
-
-State_A_Data_LONG[,
-  Z_PROFICIENCY := scale(PROFICIENCY),
-  by = c("YEAR", "CONTENT_AREA", "GRADE")
-]
-
-#+ data-prep-misc, echo = FALSE, message = FALSE
-#   THESE ARE JUST SOME CHECKS THAT CAN BE RUN ON THE Z-SCORE VARIABLES:
-# State_A_Data_LONG[,
-#   as.list(summary(Z_PROFICIENCY)),
-#   keyby = c("YEAR", "CONTENT_AREA", "GRADE")
-# ]
-# State_A_Data_LONG[,
-#     as.list(summary(Z_SCORE)),
-#     keyby = c("YEAR", "CONTENT_AREA", "GRADE")
-# ]
-
+#+ data-prep-save, echo = TRUE, purl = TRUE, eval = FALSE
+fwrite(State_A_Data_LONG,
+    file = "Data/Cleaned_Data/Student_LongTestData_State_A_2016-2022_AVI.csv"
+)
 
 #' ## Summary and notes
 #'
-#' * "State A" uses the 2016 to 2019 subset of the *`sgpData_LONG_COVID`*
+#' * "State A" uses the 2016 to 2022 subset of the *`sgpData_LONG_COVID`*
 #'   dataset from the `SGPData` package.
-#'   - The "original", unperturbed version of the scaled score is retained.
-#' * A standardized scale score variable is added (scaled by unique grade,
-#'   content area and annual assessment).
-#' * A binary indicator variable for proficiency status is added.
+#'   - Only required variables are retained.
+#' * Variables required by the `SGP` packages were renamed and formatted as
+#'   necessary.
+#' * Student demographic variables were formatted to be consistent across all
+#'   states in the study.
+#' * A `VALID_CASE` variable was created and used to identify duplicate records
+#'   and other problematic cases.

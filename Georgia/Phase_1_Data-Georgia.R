@@ -4,6 +4,8 @@
 ####                   Data Cleaning and Prep -- Georgia                   ####
 ####                                                                       ####
 ###############################################################################
+if (!dir.exists("./Data/Cleaned_Data"))
+     dir.create("./Data/Cleaned_Data", recursive = TRUE)
 
 #' #  Data merging, cleaning and preparation
 #'
@@ -28,81 +30,121 @@ require(data.table)
 #'
 #' Things we need to do...
 #'
-#+ data-prep-getdata, echo = TRUE, purl = TRUE
+#+ data-prep-getdata, echo = TRUE, purl = TRUE, eval = FALSE
 # Load raw GA data
+Georgia_Data_LONG <-
+    fread(
+        "Data/Student Files/fy2016-2022_gmas-eog-detail-with-lexile_pipe.txt",
+        sep = "|"
+    )
+# Best to get this out of the way ASAP - 3.65 mill extra records
+Georgia_Data_LONG <-
+    Georgia_Data_LONG[
+        ASSESSMENT_SUBJECT_CODE %in% c("E", "M") &
+        STUDENT_GRADE_LEVEL %in% 3:8,
+    ]
 
 # Make SchoolID unique - based on SGP code from GA Milestones
-Georgia_Data_LONG[, SchoolID := as.numeric(SYSTEM_ID)*10000 + as.numeric(SCHOOL_ID)]
-Georgia_Data_LONG[which(as.numeric(SYSTEM_ID) > 1000), SchoolID := as.numeric(SYSTEM_ID)]
+Georgia_Data_LONG[,
+    SchoolID := as.numeric(SYSTEM_ID)*10000 + as.numeric(SCHOOL_ID)
+]
+Georgia_Data_LONG[
+    which(as.numeric(SYSTEM_ID) > 1000),
+      SchoolID := as.numeric(SYSTEM_ID)
+]
 Georgia_Data_LONG[, SchoolID := as.integer(SchoolID)]
 
 
-#+ data-prep-rename, echo = TRUE, purl = TRUE
-# setnames(
-#   Georgia_Data_LONG,
-#   c("ETHNICITY", "FREE_REDUCED_LUNCH_STATUS", "ELL_STATUS", "IEP_STATUS"),
-#   c("Race", "EconDis", "EL", "SWD")
-# )
-# Georgia_Data_LONG[, Race := as.character(Race)]
-# Georgia_Data_LONG[Race == "African American", Race := "Black"]
-# Georgia_Data_LONG[, EconDis := gsub("Free Reduced Lunch", "FRL", EconDis)]
+#+ data-prep-rename, echo = TRUE, purl = TRUE, eval = FALSE
+gw_var_names <-
+    c("YEAR", "ID", "CONTENT_AREA",
+      "Race", "SWD", "EconDis", "EL",
+      "GRADE", "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
+    )
 
-Georgia_Data_LONG[,
-  c("ASSESSMENT_TYPE_CODE", "LEXILE_SCALE_SCORE", "SCHOOL_NAME") := NULL
-]
+setnames(
+  Georgia_Data_LONG,
+  old = c("SCHOOL_YEAR", "STUDENT_ID32", "ASSESSMENT_SUBJECT_CODE",
+          "RACE_ETHNICITY", "SWD_FLAG", "ECON_DISADVANTAGE_FLAG", "EL_FLAG",
+          "STUDENT_GRADE_LEVEL", "ASSESSMENT_SCALE_SCORE", "PERFORMANCE_LEVEL"
+        ),
+  new = gw_var_names
+)
+setcolorder(Georgia_Data_LONG, gw_var_names)
 
-#' ## Additional variables for aggregated results
+
+#' ### Tiddy up `SGP` required variables and student demographics
 #'
-#' A standardized score variable and an achievement proficiency indicator are
-#' required for school level aggregations, final analyses and results
-#' comparisons. The standardized scale score variable is scaled by each
-#' ***year by subject by grade*** test mean and standard deviation^[The unstandardized `SCALE_SCORE` variable is used in the SGP calculations.].
+#+ data-prep-tidy, echo = TRUE, purl = TRUE, eval = FALSE
+Georgia_Data_LONG[, SCALE_SCORE := as.numeric(SCALE_SCORE)]
+
+Georgia_Data_LONG[, ACHIEVEMENT_LEVEL := as.factor(ACHIEVEMENT_LEVEL)]
+setattr(
+    Georgia_Data_LONG$ACHIEVEMENT_LEVEL, "levels",
+    c("Beginning Learner", "Developing Learner",
+      "Distinguished Learner", "Proficient Learner"
+    )
+)
+Georgia_Data_LONG[, ACHIEVEMENT_LEVEL := as.character(ACHIEVEMENT_LEVEL)]
+
+##    CONTENT_AREA must match meta-data in `SGPstateData`
+Georgia_Data_LONG[
+    CONTENT_AREA == "E", CONTENT_AREA := "ELA"
+][
+    CONTENT_AREA == "M", CONTENT_AREA := "MATHEMATICS"
+]
+
+##    Remove extraneous variables
+Georgia_Data_LONG[,
+  c("ASSESSMENT_TYPE_CODE", "LEXILE_SCALE_SCORE", "SYSTEM_ID", "SCHOOL_ID") := NULL
+]
+
+
+##    Demographics
+Georgia_Data_LONG[, Race := factor(Race)]
+setattr(Georgia_Data_LONG$Race, "levels",
+        c("Black", "Hispanic", "Native American",
+          "Multiracial", "Pacific", "Asian", "White")
+        )
+Georgia_Data_LONG[, Race := as.character(Race)]
+Georgia_Data_LONG[,
+    EconDis := ifelse(EconDis == "N", "EconDis: No", "EconDis: Yes")
+]
+Georgia_Data_LONG[, EL := ifelse(EL == "N", "EL: No", "EL: Yes")]
+Georgia_Data_LONG[, SWD := ifelse(SWD == "N", "SWD: No", "SWD: Yes")]
+
+#' ### Create `VALID_CASE` and invalidate duplicates
+#+ data-prep-vc, echo = TRUE, purl = TRUE, eval = FALSE
+Georgia_Data_LONG[, VALID_CASE := "VALID_CASE"]
+setkey(Georgia_Data_LONG,
+    VALID_CASE, CONTENT_AREA, GRADE, YEAR, ID, SCALE_SCORE)
+setkey(Georgia_Data_LONG,
+    VALID_CASE, CONTENT_AREA, GRADE, YEAR, ID)
+Georgia_Data_LONG |> duplicated(by = key(Georgia_Data_LONG)) |> sum()
+# 767 duplicates - (((take the highest score if any exist)))
+# dupl <- duplicated(Georgia_Data_LONG, by = key(Georgia_Data_LONG))
+Georgia_Data_LONG[
+    which(duplicated(Georgia_Data_LONG, by=key(Georgia_Data_LONG)))-1,
+      VALID_CASE := "INVALID_CASE"
+]
+table(Georgia_Data_LONG[, .(YEAR, VALID_CASE), GRADE])
+Georgia_Data_LONG <- Georgia_Data_LONG[VALID_CASE == "VALID_CASE"]
+
+#' ##  Save data
 #'
-#' *NOTE:* I am doing this here, but it could easily be done before the
-#' aggregation/summarization step. It is NOT required as any part of the growth
-#' analyses.
-#' 
-#+ data-prep-zscore, echo = TRUE, purl = TRUE
-##    Standardize SCALE_SCORE by CONTENT_AREA and GRADE using 2019 norms
-Georgia_Data_LONG[,
-  Z_SCORE := scale(SCALE_SCORE),
-  by = c("YEAR", "CONTENT_AREA", "GRADE")
-]
-
-#' A simple '`1/0`' binary indicator for proficiency will allow us to compute
-#' descriptive statistics (e.g., percent proficient) easily and consistently
-#' across all states included in the report.
-#'
-#+ data-prep-prof, echo = TRUE, purl = TRUE
-##    Proficient/Not (1/0) binary indicator.
-Georgia_Data_LONG[,
-  PROFICIENCY := fcase(
-    ACHIEVEMENT_LEVEL %in% c("Partially Proficient", "Unsatisfactory"), 0L,
-    ACHIEVEMENT_LEVEL %in% c("Advanced", "Proficient"), 1L
-  )
-]
-
-Georgia_Data_LONG[,
-  Z_PROFICIENCY := scale(PROFICIENCY),
-  by = c("YEAR", "CONTENT_AREA", "GRADE")
-]
-
-#+ data-prep-misc, echo = FALSE, message = FALSE
-#   THESE ARE JUST SOME CHECKS THAT CAN BE RUN ON THE Z-SCORE VARIABLES:
-# Georgia_Data_LONG[,
-#   as.list(summary(Z_PROFICIENCY)),
-#   keyby = c("YEAR", "CONTENT_AREA", "GRADE")
-# ]
-# Georgia_Data_LONG[,
-#     as.list(summary(Z_SCORE)),
-#     keyby = c("YEAR", "CONTENT_AREA", "GRADE")
-# ]
-
+#+ data-prep-save, echo = TRUE, purl = TRUE, eval = FALSE
+fname <- "Data/Cleaned_Data/Student_LongTestData_Georgia_2016-2022_AVI.csv"
+fwrite(Georgia_Data_LONG, file = fname)
+zip(zipfile = paste0(fname, ".zip"), files = fname, flags = "-mqj")
 
 #' ## Summary and notes
 #'
 #' * Data used for this project was provided by GaDOE (11/2022).
-#'   - A subset of 2016-2019 ELA and Math data are retained.
-#' * A standardized scale score variable is added (scaled by unique grade,
-#'   content area and annual assessment).
-#' * A binary indicator variable for proficiency status is added.
+#'   - A subset of 2016-2022 ELA and Math data are retained.
+#' * A unique SchoolID variable is created from GA District and School IDs
+#' * Variables required by the `SGP` packages were renamed and formatted as
+#'   necessary.
+#' * Student demographic variables were formatted to be consistent across all
+#'   states in the study.
+#' * A `VALID_CASE` variable was created and used to identify duplicate records
+#'   and other problematic cases.
