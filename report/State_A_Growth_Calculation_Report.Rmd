@@ -37,7 +37,7 @@ paged-footnotes: yes
     warning = FALSE,
     prompt = FALSE  #  Avoid the "R>" and "R+" in code output for WP format
   )
-knitr::opts_chunk$set(TRUE)
+
   ###   Utility functions
   ord = \(x) { # <sup>th</sup>
     o <- toOrdinal::toOrdinal(as.numeric(x))

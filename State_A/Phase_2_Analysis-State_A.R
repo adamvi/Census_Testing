@@ -42,9 +42,10 @@ SGPstateData[["State_A"]][["Growth"]][["Levels"]] <-
 #+ sgp-calc-data, echo = TRUE, purl = TRUE
 #  Load cleaned, merged and formatted data
 if (!exists("State_A_Data_LONG")) {
+  source("../functions/freadZIP.R")
   State_A_Data_LONG <-
-    data.table::fread(
-      "Data/Cleaned_Data/Student_LongTestData_State_A_2016-2022_AVI.csv"
+    freadZIP(
+      "Data/Cleaned_Data/Student_LongTestData_State_A_2016-2022_AVI.csv.zip"
     )[YEAR < 2020]
 } else {
   State_A_Data_LONG <- State_A_Data_LONG[YEAR < 2020]
@@ -545,6 +546,6 @@ if (!dir.exists("Data/Student_Growth"))
 
 save("State_A_Data_LONG", file = "Data/Student_Growth/State_A_Data_LONG.rda")
 
-fwrite(State_A_Data_LONG,
-    file = "Data/Student_Growth/Student_LongTestData_State_A_2016-2019_AVI.csv"
-)
+fname <- "Data/Student_Growth/Student_LongTestData_State_A_2016-2019_AVI.csv"
+fwrite(State_A_Data_LONG, file = fname)
+zip(zipfile = paste0(fname, ".zip"), files = fname, flags = "-mqj")

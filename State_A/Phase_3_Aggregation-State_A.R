@@ -13,9 +13,10 @@ options(datatable.print.keys = FALSE)
 
 #  Load student data with all conditions' growth measures
 if (!exists("State_A_Data_LONG")) {
+  source("../functions/freadZIP.R")
   State_A_Data_LONG <-
-    data.table::fread(
-        "Data/Student_Growth/Student_LongTestData_State_A_2016-2019_AVI.csv"
+    freadZIP(
+      "Data/Student_Growth/Student_LongTestData_State_A_2016-2019_AVI.csv.zip"
     )
 }
 #  Create a Data subdirectory for school aggregated results

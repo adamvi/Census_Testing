@@ -71,13 +71,13 @@ ELA_2019.config <- list(
 )
 
 #' All configurations are housed in condition specific `R` code scripts. Here
-#' we read these in and combine them into a single list object, `state.a.config`,
+#' we read these in and combine them into a single list object, `illinois.config`,
 #' that will be supplied to the `abcSGP` function.
 #' 
 #+ cond-0-config, echo = TRUE, purl = TRUE
 source("SGP_CONFIG/Condition_0.R")
 
-state.a.config <-
+illinois.config <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -104,7 +104,7 @@ Georgia_SGP <-
         sgp_object = Georgia_Data_LONG,
         state = "GA",
         steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = state.a.config,
+        sgp.config = illinois.config,
         sgp.percentiles = TRUE,
         sgp.projections = FALSE,
         sgp.projections.lagged = FALSE,
@@ -151,7 +151,7 @@ Georgia_Data_LONG[,
 
 Condition_0_CoefMatrices <- copy(Georgia_SGP@SGP[["Coefficient_Matrices"]])
 save(Condition_0_CoefMatrices,
-     file = "./Condition_0/Condition_0_CoefMatrices.rda")
+     file = "./Condition_0_CoefMatrices.rda")
 
 #+ cond-1b, include = FALSE, purl = FALSE
 #####
@@ -199,7 +199,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_1b.R")
 
-state.a.config <-
+illinois.config <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -220,7 +220,7 @@ Georgia_SGP <-
         sgp_object = Georgia_Data_LONG,
         state = "GA",
         steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = state.a.config,
+        sgp.config = illinois.config,
         sgp.percentiles = TRUE,
         sgp.projections = FALSE,
         sgp.projections.lagged = FALSE,
@@ -304,7 +304,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_1c.R")
 
-state.a.config <-
+illinois.config <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -324,7 +324,7 @@ Georgia_SGP <-
         sgp_object = Georgia_Data_LONG,
         state = "GA",
         steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = state.a.config,
+        sgp.config = illinois.config,
         sgp.percentiles = TRUE,
         sgp.projections = FALSE,
         sgp.projections.lagged = FALSE,
@@ -404,7 +404,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_2.R")
 
-state.a.config <-
+illinois.config <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -416,7 +416,7 @@ state.a.config <-
 #' The call to the`abcSGP` function here is identical to that made for
 #' conditions 1b and 1c. The data object `Georgia_Data_LONG` now includes the
 #' results from conditions 0 through 1c, and the configuration object,
-#' `state.a.config`, has been updated.
+#' `illinois.config`, has been updated.
 #'
 #+ cond-2-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
 setwd("Condition_2")
@@ -425,7 +425,7 @@ Georgia_SGP <-
         sgp_object = Georgia_Data_LONG,
         state = "GA",
         steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = state.a.config,
+        sgp.config = illinois.config,
         sgp.percentiles = TRUE,
         sgp.projections = FALSE,
         sgp.projections.lagged = FALSE,

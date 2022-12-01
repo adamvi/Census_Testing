@@ -103,9 +103,9 @@ State_A_Data_LONG <- State_A_Data_LONG[VALID_CASE == "VALID_CASE"]
 #' ##  Save data
 #'
 #+ data-prep-save, echo = TRUE, purl = TRUE, eval = FALSE
-fwrite(State_A_Data_LONG,
-    file = "Data/Cleaned_Data/Student_LongTestData_State_A_2016-2022_AVI.csv"
-)
+fname <- "Data/Cleaned_Data/Student_LongTestData_State_A_2016-2022_AVI.csv"
+fwrite(State_A_Data_LONG, file = fname)
+zip(zipfile = paste0(fname, ".zip"), files = fname, flags = "-mqj")
 
 #' ## Summary and notes
 #'
