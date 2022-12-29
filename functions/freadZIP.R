@@ -14,10 +14,10 @@ freadZIP =
     system(paste0("unzip '", zipfile, "'"))
 
     if (all.to.char) {
-        TMP <- fread(fname, sep = sep, nrows = 10L)
-        TMP <- fread(fname, sep = sep, colClasses = rep("character", ncol(TMP)))
+        TMP <- data.table::fread(fname, sep = sep, nrows = 10L)
+        TMP <- data.table::fread(fname, sep = sep, colClasses = rep("character", ncol(TMP)))
     } else {
-        TMP <- fread(fname, sep = sep)
+        TMP <- data.table::fread(fname, sep = sep)
     }
 
     unlink(fname)

@@ -4,8 +4,6 @@
 ####        Create 2018 and 2019 SGPs for Georgia - All Conditions         ####
 ####                                                                       ####
 ###############################################################################
-if (!dir.exists("./Condition_0")) dir.create("./Condition_0")
-if (!exists("workers")) workers <- parallel::detectCores(logical = FALSE)/2
 
 #' # Student Growth Percentiles Analysis
 #'
@@ -27,6 +25,7 @@ if (!exists("workers")) workers <- parallel::detectCores(logical = FALSE)/2
 #+ sgp-calc-pkg, echo = TRUE, purl = TRUE
 require(SGP)
 require(data.table)
+source("../functions/calculate_SGPs.R")
 
 #  Load cleaned, merged and formatted data
 if (!exists("Georgia_Data_LONG")) {
@@ -71,13 +70,13 @@ ELA_2019.config <- list(
 )
 
 #' All configurations are housed in condition specific `R` code scripts. Here
-#' we read these in and combine them into a single list object, `illinois.config`,
+#' we read these in and combine them into a single list object, `georgia.config`,
 #' that will be supplied to the `abcSGP` function.
 #' 
 #+ cond-0-config, echo = TRUE, purl = TRUE
 source("SGP_CONFIG/Condition_0.R")
 
-illinois.config <-
+ga.config.c0 <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -96,6 +95,13 @@ illinois.config <-
 #' their working directory set to "*./Condition_0*".
 
 #+ cond-0-wd1, echo = TRUE, purl = TRUE
+Georgia_SGP <-
+    calculate_SGPs(
+      sgp_data = Georgia_Data_LONG,
+      config = ga.config.c0,
+      condition = "0",
+      workers = list(TAUS = 15)
+    )
 
 #+ cond-0-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
 setwd("./Condition_0")
@@ -104,7 +110,7 @@ Georgia_SGP <-
         sgp_object = Georgia_Data_LONG,
         state = "GA",
         steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = illinois.config,
+        sgp.config = georgia.config,
         sgp.percentiles = TRUE,
         sgp.projections = FALSE,
         sgp.projections.lagged = FALSE,
@@ -114,7 +120,7 @@ Georgia_SGP <-
         simulate.sgps = FALSE,
         parallel.config = list(
             BACKEND = "PARALLEL",
-            WORKERS = workers
+            WORKERS = list(TAUS = 15)
         )
     )
 
@@ -139,25 +145,18 @@ setwd("..")
 #' in case we need to replicate or compare results from this condition analysis.
 #'
 #+ cond-0-cleanup, echo = TRUE, message = FALSE, purl = TRUE
-rm(Georgia_Data_LONG)
-Georgia_Data_LONG <- copy(Georgia_SGP@Data)
-
-setnames(x = Georgia_Data_LONG, old = "SGP", new = "SGP_Cnd_0")
-Georgia_Data_LONG[,
+setnames(x = Georgia_SGP@Data, old = "SGP", new = "SGP_Cnd_0")
+Georgia_SGP@Data[,
     c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
       "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
     ) := NULL
 ]
 
-Condition_0_CoefMatrices <- copy(Georgia_SGP@SGP[["Coefficient_Matrices"]])
-save(Condition_0_CoefMatrices,
-     file = "./Condition_0_CoefMatrices.rda")
 
 #+ cond-1b, include = FALSE, purl = FALSE
 #####
 ##     Condition 1b
 #####
-if (!dir.exists("./Condition_1b")) dir.create("./Condition_1b")
 
 #' ## Simulation Condition 1b
 #' 
@@ -199,7 +198,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_1b.R")
 
-illinois.config <-
+ga.config.c1b <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -214,56 +213,20 @@ illinois.config <-
 #' and all other relevant arguments remain the same.
 #'
 #+ cond-1b-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
-setwd("./Condition_1b")
+
 Georgia_SGP <-
-    abcSGP(
-        sgp_object = Georgia_Data_LONG,
-        state = "GA",
-        steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = illinois.config,
-        sgp.percentiles = TRUE,
-        sgp.projections = FALSE,
-        sgp.projections.lagged = FALSE,
-        sgp.percentiles.baseline = FALSE,
-        sgp.projections.baseline = FALSE,
-        sgp.projections.lagged.baseline = FALSE,
-        simulate.sgps = FALSE,
-        parallel.config = list(
-            BACKEND = "PARALLEL",
-            WORKERS = workers
-        )
+    calculate_SGPs(
+      sgp_data = Georgia_SGP,
+      config = ga.config.c1b,
+      condition = "1b",
+      workers = list(TAUS = 15)
     )
-
-rm(Georgia_Data_LONG)
-Georgia_Data_LONG <- copy(Georgia_SGP@Data)
-
-setnames(x = Georgia_Data_LONG, old = "SGP", new = "SGP_Cnd_1b")
-Georgia_Data_LONG[,
-    c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
-      "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
-    ) := NULL
-]
-
-Condition_1b_CoefMatrices <- copy(Georgia_SGP@SGP[["Coefficient_Matrices"]])
-save(Condition_1b_CoefMatrices,
-     file = "./Condition_1b_CoefMatrices.rda")
-
-
-#+ cond-1b-trimrepo, echo = FALSE, message = FALSE, purl = TRUE
-all.files <-
-  list.files("Goodness_of_Fit", recursive = TRUE, full.names = TRUE)
-flrm.tf <-
-  file.remove(grep(".pdf|.Rdata", all.files, value = TRUE))
-unlk.tf <-
-  unlink(grep("Decile_Tables", list.dirs(), value=TRUE), recursive = TRUE)
-setwd("..")
 
 
 #+ cond-1c, include = FALSE, purl = FALSE
 #####
 ##     Condition 1c
 #####
-if (!dir.exists("./Condition_1c")) dir.create("./Condition_1c")
 
 #' ## Simulation Condition 1c
 #' 
@@ -304,7 +267,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_1c.R")
 
-illinois.config <-
+ga.config.c1c <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -314,60 +277,24 @@ illinois.config <-
 #' ### Calculate condition 1c SGPs
 #'
 #' The call to the`abcSGP` function here is identical to that made for
-#' conditions 1b and 2. The data object `Georgia_Data_LONG` now includes the
+#' conditions 1b and 2. The data object `Georgia_SGP@Data` now includes the
 #' results from conditions 0 and 1b, and the configurations have been updated.
 #'
 #+ cond-1c-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
-setwd("./Condition_1c")
+
 Georgia_SGP <-
-    abcSGP(
-        sgp_object = Georgia_Data_LONG,
-        state = "GA",
-        steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = illinois.config,
-        sgp.percentiles = TRUE,
-        sgp.projections = FALSE,
-        sgp.projections.lagged = FALSE,
-        sgp.percentiles.baseline = FALSE,
-        sgp.projections.baseline = FALSE,
-        sgp.projections.lagged.baseline = FALSE,
-        simulate.sgps = FALSE,
-        parallel.config = list(
-            BACKEND = "PARALLEL",
-            WORKERS = workers
-        )
+    calculate_SGPs(
+      sgp_data = Georgia_SGP,
+      config = ga.config.c1c,
+      condition = "1c",
+      workers = list(TAUS = 15)
     )
-
-rm(Georgia_Data_LONG)
-Georgia_Data_LONG <- copy(Georgia_SGP@Data)
-
-setnames(x = Georgia_Data_LONG, old = "SGP", new = "SGP_Cnd_1c")
-Georgia_Data_LONG[,
-    c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
-      "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
-    ) := NULL
-]
-
-Condition_1c_CoefMatrices <- copy(Georgia_SGP@SGP[["Coefficient_Matrices"]])
-save(Condition_1c_CoefMatrices,
-     file = "./Condition_1c_CoefMatrices.rda")
-
-
-#+ cond-1c-trimrepo, echo = FALSE, message = FALSE, purl = TRUE
-all.files <-
-  list.files("Goodness_of_Fit", recursive = TRUE, full.names = TRUE)
-flrm.tf <-
-  file.remove(grep(".pdf|.Rdata", all.files, value = TRUE))
-unlk.tf <-
-  unlink(grep("Decile_Tables", list.dirs(), value=TRUE), recursive = TRUE)
-setwd("..")
 
 
 #+ cond-2, include = FALSE, purl = FALSE
 #####
 ##     Condition 2
 #####
-if (!dir.exists("./Condition_2")) dir.create("./Condition_2")
 
 #' ## Simulation Condition 2
 #' 
@@ -404,7 +331,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_2.R")
 
-illinois.config <-
+ga.config.c2 <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -414,54 +341,19 @@ illinois.config <-
 #' ### Calculate condition 2 SGPs
 #'
 #' The call to the`abcSGP` function here is identical to that made for
-#' conditions 1b and 1c. The data object `Georgia_Data_LONG` now includes the
+#' conditions 1b and 1c. The data object `Georgia_SGP@Data` now includes the
 #' results from conditions 0 through 1c, and the configuration object,
-#' `illinois.config`, has been updated.
+#' `georgia.config`, has been updated.
 #'
 #+ cond-2-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
-setwd("Condition_2")
+
 Georgia_SGP <-
-    abcSGP(
-        sgp_object = Georgia_Data_LONG,
-        state = "GA",
-        steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = illinois.config,
-        sgp.percentiles = TRUE,
-        sgp.projections = FALSE,
-        sgp.projections.lagged = FALSE,
-        sgp.percentiles.baseline = FALSE,
-        sgp.projections.baseline = FALSE,
-        sgp.projections.lagged.baseline = FALSE,
-        simulate.sgps = FALSE,
-        parallel.config = list(
-            BACKEND = "PARALLEL",
-            WORKERS = workers
-        )
+    calculate_SGPs(
+      sgp_data = Georgia_SGP,
+      config = ga.config.c2,
+      condition = "2",
+      workers = list(TAUS = 15)
     )
-
-rm(Georgia_Data_LONG)
-Georgia_Data_LONG <- copy(Georgia_SGP@Data)
-
-setnames(x = Georgia_Data_LONG, old = "SGP", new = "SGP_Cnd_2")
-Georgia_Data_LONG[,
-    c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
-      "SGP_ORDER_1", "SGP_ORDER_2", "SGP_ORDER", "SGP_LEVEL",
-      "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
-    ) := NULL
-]
-
-Condition_2_CoefMatrices <- copy(Georgia_SGP@SGP[["Coefficient_Matrices"]])
-save(Condition_2_CoefMatrices,
-     file = "./Condition_2_CoefMatrices.rda")
-
-#+ cond-2-trimrepo, echo = FALSE, message = FALSE, purl = TRUE
-all.files <-
-  list.files("Goodness_of_Fit", recursive = TRUE, full.names = TRUE)
-flrm.tf <-
-  file.remove(grep(".pdf|.Rdata", all.files, value = TRUE))
-unlk.tf <-
-  unlink(grep("Decile_Tables", list.dirs(), value=TRUE), recursive = TRUE)
-setwd("..")
 
 
 #+ cond-3, include = FALSE, purl = FALSE
@@ -514,7 +406,7 @@ ELA_2019.config <- list(
 #' grade 6) will be omitted.
 #'
 #+ cond-3-sgp-copy, echo = TRUE, message = FALSE, purl = TRUE
-Georgia_Data_LONG[
+Georgia_SGP@Data[
     GRADE %in% c(5, 8),
     SGP_Cnd_3 := SGP_Cnd_1b
 ]
@@ -524,6 +416,9 @@ Georgia_Data_LONG[
 #+ data-analysis-save, echo = TRUE, purl = TRUE, eval = FALSE
 if (!dir.exists("Data/Student_Growth"))
     dir.create("Data/Student_Growth", recursive = TRUE)
+
+
+Georgia_Data_LONG <- copy(Georgia_SGP@Data)
 
 save("Georgia_Data_LONG", file = "Data/Student_Growth/Georgia_Data_LONG.rda")
 

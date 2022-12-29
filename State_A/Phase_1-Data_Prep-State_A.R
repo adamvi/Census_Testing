@@ -7,13 +7,13 @@
 if (!dir.exists("./Data/Cleaned_Data"))
     dir.create("./Data/Cleaned_Data", recursive = TRUE)
 
-#' #  Data cleaning and preparation
+#' #  Phase 1 - data cleaning and preparation
 #'
-#' For this simulation analysis we will be using the *`sgpData_LONG_COVID`* data
+#' For this example analysis we will be using the *`sgpData_LONG_COVID`* data
 #' from the [`SGPData`](https://github.com/CenterForAssessment/SGPdata) package.
 #' It includes 7 years of annual assessment data in two content areas (ELA and
 #' Mathematics). As this data is typically used for testing and research
-#' purposes with the `SGP` [@sgp] package, much of the data cleaning and
+#' purposes with the `SGP` package [@sgp], much of the data cleaning and
 #' formatting has already been done.
 #'
 #' This section of the appendix assumes the user is operating with their
@@ -36,20 +36,18 @@ require(data.table)
 #' This example dataset comes with a "built-in" impact in 2021 related to the
 #' pandemic as well as an unperturbed version - *`SCALE_SCORE_without_COVID_IMPACT`*.
 #' Here we will first subset the data to include only those years needed for
-#' the study, and then remove the perturbed score version and use the original
-#' scale score.
+#' the study.
 #'
 #+ data-prep-getdata, echo = TRUE, purl = TRUE
 # First load and rename/remove SCALE_SCORE* variables included in the data
 State_A_Data_LONG <- copy(SGPdata::sgpData_LONG_COVID)[YEAR < 2023]
 
 
-#' ***NOTE TO LESLIE & EMMA***
-#' 
-#' We will need to either come to an agreement on the longitudinal data naming
-#' or rename according to the `SGP` package conventions. Here I rename the
-#' demographic variables to match the "analysis specification" documents and
-#' remove some of the variables we will not be looking at or using.
+#' The variables in each longitudinal data set are renamed to be consistent
+#' across all states in the study. The variable names `ID`, `YEAR`, `GRADE`,
+#' `CONTENT_AREA` and `SCALE_SCORE` are required `SGP` package conventions. The
+#' demographic variable names match the "analysis specification" document. Any
+#' extraneous variables are removed before saving.
 #'
 #+ data-prep-rename, echo = TRUE, purl = TRUE
 setnames(
@@ -60,9 +58,9 @@ setnames(
 )
 State_A_Data_LONG[, Race := as.character(Race)]
 State_A_Data_LONG[Race == "African American", Race := "Black"]
-State_A_Data_LONG[Race == "Other", Race := "Multiracial"]
+# State_A_Data_LONG[Race == "Other", Race := "Multiracial"]
 
-State_A_Data_LONG[, EconDis := gsub("Free Reduced Lunch", "FRL", EconDis)]
+State_A_Data_LONG[, EconDis := gsub("Free Reduced Lunch", "EconDis", EconDis)]
 State_A_Data_LONG[, SWD := gsub("IEP", "SWD", SWD)]
 State_A_Data_LONG[, EL := gsub("ELL", "EL", EL)]
 
@@ -71,6 +69,14 @@ State_A_Data_LONG[,
     "DISTRICT_NUMBER", "DISTRICT_NAME", "SCHOOL_NAME"
   ) := NULL
 ]
+
+#' We have also decided to make schools unique by the grade levels that they
+#' serve (i.e. elementary and middle)
+
+#+ data-prep-schid, echo = TRUE, purl = TRUE
+State_A_Data_LONG[, SchoolID := as.character(SchoolID)]
+State_A_Data_LONG[GRADE %in% 3:5, SchoolID := paste0(SchoolID, "E")]
+State_A_Data_LONG[GRADE %in% 6:8, SchoolID := paste0(SchoolID, "M")]
 
 
 #' ### Create `VALID_CASE` and invalidate duplicates

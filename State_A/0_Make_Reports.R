@@ -88,7 +88,7 @@ inside_cover <-
         client_organization = "The Gates-Walton Foundations",
         client_name = "Bill Gates and the Walton Family",
         acknowledgements =
-        "We want to thank the State A Department of Education for their
+           "We want to thank the State A Department of Education for their
             help in obtaining the data for this report, the
             **Gates-Walton Foundations** for their ongoing support and the
             Walmart greeter who told us to never (EVER) use Windows OS."

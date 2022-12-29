@@ -77,29 +77,9 @@ if (!dir.exists("./Data/School_Summaries")) dir.create("./Data/School_Summaries"
 #'   + Mean: mean school-level indicator scores for the focus year
 #'   + SD: SD of school-level indicator scores for the focus year
 #'
-#' ##  Condition specific summary tables
-#'
-#' ***NOTE TO LESLIE & EMMA***
-#' These tables and aggregations (as well as my variable additions such as
-#' `Z_PROFICIENCY` and `Z_SCORE`) are my first attempts to both interpret and
-#' implement what I've read in the "Analysis Specification" document. Since I
-#' have extensive experience in aggregating growth and achievement data, this
-#' is how I would approach it at this early stage...
 #'
 #' ## Additional variables for aggregated results
 #'
-#' A standardized score variable and an achievement proficiency indicator are
-#' required for school level aggregations, final analyses and results
-#' comparisons. The standardized scale score variable is scaled by each
-#' ***year by subject by grade*** test mean and standard deviation^[The unstandardized `SCALE_SCORE` variable is used in the SGP calculations.].
-#'
-#+ res-agr-zscore, echo = TRUE, purl = TRUE
-##    Standardize SCALE_SCORE by CONTENT_AREA and GRADE using 2019 norms
-Georgia_Data_LONG[,
-  Z_SCORE := scale(SCALE_SCORE),
-  by = c("YEAR", "CONTENT_AREA", "GRADE")
-]
-
 #' A simple '`1/0`' binary indicator for proficiency will allow us to compute
 #' descriptive statistics (e.g., percent proficient) easily and consistently
 #' across all states included in the report.
@@ -113,52 +93,40 @@ Georgia_Data_LONG[,
   )
 ]
 
-Georgia_Data_LONG[,
-  Z_PROFICIENCY := scale(PROFICIENCY),
-  by = c("YEAR", "CONTENT_AREA", "GRADE")
-]
 
-#+ res-agr-misc, echo = FALSE, message = FALSE
-#   THESE ARE JUST SOME CHECKS THAT CAN BE RUN ON THE Z-SCORE VARIABLES:
-# Georgia_Data_LONG[,
-#   as.list(summary(Z_PROFICIENCY)),
-#   keyby = c("YEAR", "CONTENT_AREA", "GRADE")
-# ]
-# Georgia_Data_LONG[,
-#     as.list(summary(Z_SCORE)),
-#     keyby = c("YEAR", "CONTENT_AREA", "GRADE")
-# ]
-
-#' ## Aggregated results tables - all students
+#' ##  Condition specific summary tables - all students by schools
+#'
+#' ***NOTE TO LESLIE & EMMA***
+#' These tables and aggregations are my first attempts to both interpret and
+#' implement what I've read in the "Analysis Specification" document.
+#' This is how I would approach this (sub-)Phase given my past experience in
+#' aggregating growth and achievement data.
 #' 
 #' The following is an example of a preliminary school-level aggregation table
 #' for condition 0. Each condition will have a similar table, generally with
 #' only the appropriate `SGP` variable substituted for `SGP_Cnd_0` and changes
 #' to the inclusion criteria (`YEAR`, `GRADE` and sometimes `CONTENT_AREA`).
 #'
-#+ agg-base-cond, echo = TRUE, purl = TRUE
+#+ agg-base-cond, echo = TRUE, purl = TRUE, eval = FALSE
 sch_summary_cnd_0 <-
     Georgia_Data_LONG[
         YEAR %in% c(2018, 2019) &
         GRADE %in% 3:8,
         .(TotalN = .N,
-          ProfN = sum(PROFICIENCY==1L),
+          ProfN = sum(PROFICIENCY == 1L),
           GrowthN = sum(!is.na(SGP_Cnd_0)),
           MGP = round(mean(SGP_Cnd_0, na.rm = TRUE), 1),
-          MeanScore = round(mean(Z_SCORE, na.rm = TRUE), 2),
-          PcntProf = round(mean(PROFICIENCY, na.rm = TRUE), 3)*100,
-          StatusZ = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3),
-          GrowthZ = round(mean(qnorm(SGP_Cnd_0/100), na.rm = TRUE), 3)
+          PctProf = round(mean(PROFICIENCY, na.rm = TRUE), 3)*100
         ),
         keyby = c("SchoolID", "YEAR", "CONTENT_AREA")
     ]
 
 #' Per the specifications doc, this table would be widened to have a column for
 #' each subject. This can be achieved with this code (retaining all specified
-#' and my additional descriptive statistics).
+#' descriptive statistics).
 
-#+ agg-base-cond, echo = TRUE, purl = TRUE, eval = FALSE
-sch_summary_cnd_0 <-
+#+ agg-base-cond-format, echo = TRUE, purl = TRUE, eval = FALSE
+sch_summary_cnd_0w <-
     dcast(
         data = sch_summary_cnd_0,
         formula = SchoolID + YEAR ~ CONTENT_AREA,
@@ -166,9 +134,9 @@ sch_summary_cnd_0 <-
         value.var = names(sch_summary_cnd_0) %w/o% key(sch_summary_cnd_0)
     )
 setnames(
-    sch_summary_cnd_0,
+    sch_summary_cnd_0w,
     sapply(
-      names(sch_summary_cnd_0),
+      names(sch_summary_cnd_0w),
       \(f) {
         tmp.name <- strsplit(f, "[.][.]")[[1]] |> rev() |> paste(collapse = "_")
         gsub("MATHEMATICS", "Math", tmp.name)
@@ -176,13 +144,6 @@ setnames(
     ) |> unlist()
 )
 
-#   Write files for each year separately as per the specifications:
-fwrite(sch_summary_cnd_0[YEAR == 2018][, YEAR := NULL],
-    file = "Data/School_Summaries/School_Condition_0_Georgia_2018_AVI.csv"
-)
-fwrite(sch_summary_cnd_0[YEAR == 2019][, YEAR := NULL],
-    file = "Data/School_Summaries/School_Condition_0_Georgia_2019_AVI.csv"
-)
 
 #' Creating summary tables for the other conditions would only require changing
 #' the data records selected (year, grade and content areas as defined for each
@@ -200,7 +161,7 @@ school_aggregation_all_students <-
       list(
         schoolAggrGator(
           data_table =
-            Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8,],
+            Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8],
           growth.var = "SGP_Cnd_0"
         )[, Condition := "0"],
         schoolAggrGator(
@@ -228,17 +189,25 @@ school_aggregation_all_students <-
           growth.var = "SGP_Cnd_3"
         )[, Condition := "3"]
       )
-    ) |>
-      setcolorder(c("Condition", "YEAR", "SchoolID"))
+    )[, Group := "All"] |>
+      setcolorder(c("Condition", "SchoolID", "Group", "YEAR")) |>
+      setkeyv(c("Condition", "YEAR", "SchoolID"))
+
 
 #' You may notice that there are more summary calculations than what will be
 #' used (e.g., percent proficient and mean standardized scale scores). Those
 #' are included for our review - so we can easily see what a z-score, of for
 #' example 0.5, corresponds to in the actual percent proficient or mean SGP.
-
-#+ agg-all-sch-ex, echo = FALSE, purl = TRUE, eval = FALSE
-##  Here is an example school from the condition 0 table:
-school_aggregation_all_students[SchoolID == `DISTSCHOOL-XYZ`] |>
+#' Here are two schools from the condition 0 table:
+#'
+#+ agg-cond-0-ex, echo = TRUE, purl = TRUE
+school_aggregation_all_students[
+    Condition == 0 & SchoolID == `SCHOOL-XYZ`, # rows to keep
+    c(key(school_aggregation_all_students)[-1],
+      grep("ELA", names(school_aggregation_all_students), value = TRUE)
+    ),  #  columns to keep
+    with = FALSE
+  ] |>
     setkey(SchoolID) |> print()
 
 #' We can look at these tables in a number of ways to make sure we are getting
@@ -246,7 +215,7 @@ school_aggregation_all_students[SchoolID == `DISTSCHOOL-XYZ`] |>
 #' get a summary in condition 1c given the testing pattern:
 #' 
 #+ agg-all-inspect, echo = TRUE, purl = TRUE
-table(school_aggregation_all_students[, .(Condition, YEAR), is.na(Math_GrowthZ)])
+table(school_aggregation_all_students[, .(Condition, YEAR), is.na(Math_MGP)])
 
 fwrite(school_aggregation_all_students,
     file = "Data/School_Summaries/School_Condition_AllGrowth_AllStudents_Georgia_AllYears_AVI.csv"
@@ -263,13 +232,13 @@ fwrite(school_aggregation_all_students,
 #' other conditions, but include all available years. Lagged values are then
 #' created and the change scores calculated.
 #' 
-#+ agg-improve, echo = TRUE, purl = TRUE
+#+ agg-improve, echo = TRUE, purl = TRUE, eval = FALSE
 sch_summary_cnd_1a <-
     Georgia_Data_LONG[
         GRADE %in% c(5, 8),
-        .(TotalN = .N,
-          MeanScore = round(mean(Z_SCORE, na.rm = TRUE), 2),
-          StatusZ = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3)
+        .(N = sum(!is.na(SCALE_SCORE)),
+          MeanScore = mean(SCALE_SCORE, na.rm = TRUE),
+          ScoreSD = sd(SCALE_SCORE, na.rm = TRUE)
         ),
         keyby = c("YEAR", "CONTENT_AREA", "GRADE", "SchoolID")
     ]
@@ -282,7 +251,7 @@ setkeyv(
 cfaTools::getShiftedValues(
     sch_summary_cnd_1a,
     shift_group = c("SchoolID", "CONTENT_AREA"),
-    shift_variable = c("TotalN", "MeanScore", "StatusZ"),
+    shift_variable = c("N", "MeanScore", "ScoreSD"),
     shift_amount = 1L
 )
 
@@ -290,21 +259,59 @@ cfaTools::getShiftedValues(
 sch_summary_cnd_1a <-
     sch_summary_cnd_1a[YEAR %in% c(2018, 2019)]
 
-#  Calculate changes (current year minus 1 year lag)
+#  Calculate Change Score (Z - effect size?)
+# ELA_G5_ZDiff = (ELA_G5AvgScore_<FYear> - ELA_G5AvgScore_<PYear>) / [(ELA_G5StdDev_<FYear>  ELA_G5N_<FYear> + ELA_G5StdDev_<PYear>  ELA_G5N_<PYear>) / (ELA_G5N_<FYear> + ELA_G5N_<PYear>)]
+
 sch_summary_cnd_1a[,
-    TotalN_Change := TotalN - TotalN_LAG_1
-][,
-    MeanScore_Change := MeanScore - MeanScore_LAG_1
-][,
-    StatusZ_Change := StatusZ - StatusZ_LAG_1
+    ZDiff := (MeanScore - MeanScore_LAG_1) / ((ScoreSD*N + ScoreSD_LAG_1*N_LAG_1)/(N + N_LAG_1))
 ]
+
+
+#' Here is our example school's improvement numbers
+sch_summary_cnd_1a[SchoolID == `SCHOOL-XYZ`,
+    c(key(sch_summary_cnd_1a)[-1], "ZDiff"), with = FALSE
+]
+
+
+#' One important factor to consider with the "school improvement" indicator is
+#' the issue of "regression to the mean" that is expected to occur. There are
+#' a strong relationships between current/prior scores and change scores that
+#' may require correction:
+#'
+#+ agg-1b-rtm, echo = TRUE, purl = TRUE
+cor(
+  sch_summary_cnd_1a[, MeanScore, ZDiff],
+  use = 'na.or.complete'
+) |> round(3)
+
+cor(
+  sch_summary_cnd_1a[, MeanScore_LAG_1, ZDiff],
+  use = 'na.or.complete'
+) |> round(3)
+
+sch_summary_cnd_1a[,
+  .(Current_Year = cor(MeanScore, ZDiff, use = 'na.or.complete'),
+    Prior_Year = cor(MeanScore_LAG_1, ZDiff, use = 'na.or.complete')
+  ),
+  keyby = c("YEAR", "CONTENT_AREA", "GRADE")
+]
+
+#' Per the specifications doc, here is how we could reshape this summary table
+#' so that there are separate columns for each grade and subject.
+#'
+#+ agg-improve-format, echo = TRUE, purl = TRUE
 #  Reshape by subject
+sch_summary_cnd_1a[, GRADE := paste0("G", GRADE)]
+setkeyv(
+  sch_summary_cnd_1a,
+  c("SchoolID", "CONTENT_AREA", "YEAR", "GRADE")
+)
 sch_summary_cnd_1a <-
     dcast(
         data = sch_summary_cnd_1a,
-        formula = SchoolID + YEAR + GRADE ~ CONTENT_AREA,
+        formula = SchoolID + YEAR ~ GRADE + CONTENT_AREA,
         sep = "..",
-        value.var = names(sch_summary_cnd_1a) %w/o% key(sch_summary_cnd_1a)
+        value.var = c("N", "ZDiff")
     )
 setnames(
     sch_summary_cnd_1a,
@@ -317,6 +324,43 @@ setnames(
     ) |> unlist()
 )
 
+#' If schools have both 5th and 8th grades, then take a weighted average of
+#' their <Subject>_G5_ZDiff and <Subject>_G8_ZDiff to create the ELA_Improve and
+#' Math_Improve variable, otherwise <Subject>_Improve is equal to the grade
+#' level <Subject>_G5_ZDiff or <Subject>_G8_ZDiff they DO have in the school.
+#'
+#' NOTE: This is not necessary if we break up the schools into Elementary and
+#'       Middle grade only schools.
+#'
+#+ agg-improve-var, echo = TRUE, purl = TRUE
+sch_summary_cnd_1a[,
+  ELA_Improve := ELA_G5_ZDiff
+][
+  is.na(ELA_Improve),
+  ELA_Improve := ELA_G8_ZDiff
+][
+  !is.na(ELA_G5_ZDiff) & !is.na(ELA_G8_ZDiff),
+  ELA_Improve := ((ELA_G5_ZDiff * ELA_G5_N) + (ELA_G8_ZDiff * ELA_G8_N))/(ELA_G5_N + ELA_G8_N)
+][,
+  Math_Improve := Math_G5_ZDiff
+][
+  is.na(Math_Improve),
+  Math_Improve := Math_G8_ZDiff
+][
+  !is.na(Math_G5_ZDiff) & !is.na(Math_G8_ZDiff),
+  Math_Improve := ((Math_G5_ZDiff * Math_G5_N) + (Math_G8_ZDiff * Math_G8_N))/(Math_G5_N + Math_G8_N)
+]
+
+sch_summary_cnd_1a[, (grep("ZDiff", names(sch_summary_cnd_1a))) := NULL]
+
+
+#' Finally, we add the `Group` variable to indicate this data set is for all
+#' students, and save files for each year.
+#'
+#+ agg-improve-save, echo = TRUE, purl = TRUE
+sch_summary_cnd_1a[, Group := "All"]
+setcolorder(sch_summary_cnd_1a, c("YEAR", "SchoolID", "Group"))
+
 fwrite(sch_summary_cnd_1a[YEAR == 2018][, YEAR := NULL],
     file = "Data/School_Summaries/School_Condition_1a_Georgia_2018_AVI.csv"
 )
@@ -324,89 +368,34 @@ fwrite(sch_summary_cnd_1a[YEAR == 2019][, YEAR := NULL],
     file = "Data/School_Summaries/School_Condition_1a_Georgia_2019_AVI.csv"
 )
 
-#+ agg-sch-imprv-ex, echo = FALSE, purl = TRUE, eval = FALSE
-##  Here is an example school's improvement numbers from the condition 1a table:
-sch_summary_cnd_1a[SchoolID == `DISTSCHOOL-XYZ`,
-    c(key(sch_summary_cnd_1a)[-1],
-      grep("Change", names(sch_summary_cnd_1a), value = TRUE)
-    ), with = FALSE
-]
+#' Note that the above code can be accomplished with the `cond1aAggrGator`
+#' function:
+sch_smry_cnd_1a <- cond1aAggrGator(data_table = Georgia_Data_LONG)
 
-
-#'   I THINK WE NEED TO DO THIS FOR CONDITION 1c AS WELL ?!
-#'   No elementary math growth - probably need to do an improvement status
-#'   measure (at least for "pure" grade 3-5 elementary schools)?
+#' This function is used below for the condition 1a summaries that are
+#' disaggregated by demographic subgroups.
 #'
 #'
-#' One thought before leaving the "school improvement" indicator section is
-#' that the issue of "regression to the mean" should be considered. There is
-#' a strong relationship between current/prior scores and change scores that
-#' may require a correction:
-#'
-#+ agg-rtm, echo = TRUE, purl = TRUE
-cor(
-  sch_summary_cnd_1a[, Math_MeanScore, Math_MeanScore_Change],
-  use = 'na.or.complete'
-) |> round(3)
-
-cor(
-  sch_summary_cnd_1a[, Math_MeanScore_LAG_1, Math_MeanScore_Change],
-  use = 'na.or.complete'
-) |> round(3)
-
-cor(
-  sch_summary_cnd_1a[, ELA_MeanScore_LAG_1, ELA_MeanScore_Change],
-  use = 'na.or.complete'
-) |> round(3)
-
-
 #' ##  School level aggregations by demographics
 #'
-#' An example of our function used for (dis)aggregation by student demographics
-#' (Economic Disadvantage) for condition 0 results:
-#' 
-#+ agrGr8r-ex2, echo = TRUE, purl = TRUE, eval = FALSE
-schoolAggrGator(
-    data_table =
-      Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8, ],
-    growth.var = "SGP_Cnd_0",
-    groups = c("SchoolID", "YEAR", "CONTENT_AREA", "EconDis")
-)
-
-#' In order to do all the demographic summaries at once, we can collect and
-#' combine calls to the function via a `lapply` over the demographic variables
-#' and piping the resulting list to `rbindlist`. Note that the demographic
-#' subgroup indicator is changed (from the demographic variable name) to the
-#' generic "Group" for each individual table.
+#' Adding in the demographic variables is a simple addition of the variable of
+#' interest into the `keyby` argument of the `data.table` aggregation.
 #'
-#+ agrGr8r-combo1, echo = TRUE, purl = TRUE, eval = FALSE
-demog_cond0 <-
-  lapply(
-    c("Race", "EconDis", "EL", "SWD"),
-    \(f) {
-      schoolAggrGator(
-        data_table =
-          Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8, ],
-        growth.var = "SGP_Cnd_0",
-        groups = c("SchoolID", "YEAR", "CONTENT_AREA", f)
-      )[, Condition := "0"] |> setnames(f, "Group")
-    }
-  ) |> rbindlist()
-
-#+ agrGr8r-ex-demog, echo = FALSE, purl = FALSE, eval = FALSE
-demog_cond0[
-  SchoolID == `DISTSCHOOL-XYZ` & YEAR == 2019
-][,
-  grep("YEAR|SchoolID|MGP|MeanScore", names(demog_cond0), value = TRUE) := NULL
-][]
-
-#' The demographic aggregation and combination code chunks above can
-#' be run for each of the `SGP_Cnd*` growth fields. At that point, we can then
-#' combine those objects in a wide format (this would require re-naming the
-#' aggregate variables), stacked into a long format (with an added "Condition"
-#' variable for each table as done below) or written to separate .csv files as
+#' In order to do all the demographic summaries at once, we can combine calls
+#' to the function (rather than creating separate tables and THEN combining)
+#' using the `rbindlist` function from `data.table`.
+#' Note that the demographic subgroup indicator is changed (from the demographic
+#' variable name) to the generic "Group" for each individual table.:
+#'
+#' All of the demographic aggregation and combination code chunks can be run
+#' for each of the `SGP_Cnd*` growth fields. At that point, we can then combine
+#' those objects in a wide format, stacked into a long format (with an added
+#' "Condition" variable for each table) or written to separate .csv files as
 #' described in the specification doc.
-#' 
+#'
+#' The code below creates a stacked long format version with all
+#' conditions that contain growth.
+#'
 #+ agg-stdnt-demog, echo = FALSE, purl = TRUE
 school_aggregation_student_demogs <-
     rbindlist(
@@ -480,6 +469,23 @@ fwrite(school_aggregation_student_demogs,
     file = "Data/School_Summaries/School_Condition_AllGrowth_Demographics_Georgia_AllYears_AVI.csv"
 )
 
+
+#' We can obtain the condition 1a by demographic subgroup using the following
+#' call to the `cond1aAggrGator` function with `group` argument supplied via
+#' `lapply`:
+
+sch_summary_cnd_1a_demogs <-
+  lapply(
+    c("Race", "EconDis", "EL", "SWD"),
+    \(f) {
+      cond1aAggrGator(
+        data_table = Georgia_Data_LONG,
+        group = f
+      )
+    }
+  ) |>
+    rbindlist()
+
 #' ##  A single file with all aggregations
 #'
 #' I may be missing something about why all the various .csv files are needed
@@ -488,7 +494,6 @@ fwrite(school_aggregation_student_demogs,
 #' .csv using `fwrite` or similar):
 
 #+ res-agr-save-all, echo = TRUE, purl = FALSE
-school_aggregation_all_students[, Group := "All Students"]
 setcolorder(
     school_aggregation_all_students,
     names(school_aggregation_student_demogs)
@@ -503,5 +508,74 @@ school_aggregation_all <-
 setkeyv(school_aggregation_all, c("Condition", "SchoolID", "YEAR"))
 
 fwrite(school_aggregation_all,
-    file = "Data/School_Summaries/School_Condition_AllGrowth_Demographics_State_A_AllYears_AVI.csv"
+    file = "Data/School_Summaries/School_Condition_AllGrowth_Demographics_Georgia_AllYears_AVI.csv"
 )
+
+
+#' ###  Save the condition/year specific aggregation files
+#'
+#' Here is how to split up the single file created above into the individual
+#' files per the specification document.
+#'
+#+ res-agr-save-sep, echo = TRUE, purl = FALSE
+school_aggregation_all[
+  Condition %in% c("2", "3") & YEAR == 2018,
+  Condition := paste0(Condition, "_E")
+][
+  Condition %in% c("2", "3") & YEAR == 2019,
+  Condition := paste0(Condition, "_O")
+]
+
+fprefix <- "./Data/School_Summaries/School_Condition_"
+
+for (cond in c("0", "1a", "1b", "1c", "2_E", "2_O", "3_E", "3_O")) {
+  for (yr in 2018:2019) {
+    tmp.tbl <-
+      school_aggregation_all[
+        Condition == cond & YEAR == yr
+      ][,
+        c("Condition", "YEAR") := NULL
+      ][
+        -(grep(": No", Group)),
+      ][,
+        Group := gsub(": Yes", "", Group)
+      ]
+
+##  School_Condition_<c> _<State>_<FYear>_ <init>.csv
+    if (nrow(tmp.tbl) > 0L) {
+      fwrite(
+        x = tmp.tbl,
+        file = paste0(fprefix, cond, "_Georgia_", yr, "_AVI.csv")
+      )
+    }
+  }
+}
+
+#' Repeat this process of combining, sub-setting and saving for condition 1a.
+#' 
+#+ c1a-agr-save-sep, echo = TRUE, purl = FALSE
+sch_summary_cnd_1a_all <-
+    rbindlist(
+        list(
+          sch_summary_cnd_1a,
+          sch_summary_cnd_1a_demogs
+        )
+    )[
+      -(grep(": No", Group)),
+    ][,
+      Group := gsub(": Yes", "", Group)
+    ]
+
+fwrite(sch_summary_cnd_1a_all[YEAR == 2018][, YEAR := NULL],
+    file = "Data/School_Summaries/School_Condition_1a_Georgia_2018_AVI.csv"
+)
+fwrite(sch_summary_cnd_1a_all[YEAR == 2019][, YEAR := NULL],
+    file = "Data/School_Summaries/School_Condition_1a_Georgia_2019_AVI.csv"
+)
+
+#' ##  Summary and notes
+#'
+#' * A binary indicator variable for proficiency status is added.
+#' * Methods for using the `data.table` package for calculating school level
+#'   aggregations for all students and by demographic subgroups were outlined
+#'   and discussed with examples.

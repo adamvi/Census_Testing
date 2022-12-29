@@ -4,21 +4,27 @@
 ####        Create 2018 and 2019 SGPs for State A - All Conditions         ####
 ####                                                                       ####
 ###############################################################################
-if (!dir.exists("./Condition_0")) dir.create("./Condition_0")
-if (!exists("workers")) workers <- parallel::detectCores(logical = FALSE)/2
 
 #' # Student Growth Percentiles Analysis
 #'
 #' This section presents and explains the code used to conduct the Student
 #' Growth Percentiles (SGP) analyses. Each simulated testing condition is
-#' applied via the `R` code to the same set of data, thus only producing growth
-#' measures for the appropriate grades, content areas and years. At the end of
-#' each condition-specific analysis, the SGP variable is renamed to indicate
-#' the simulated condition before proceeding to the next SGP analysis step.
-#' Only cohort-referenced SGPs are calculated (SGP projections and targets are
-#' omitted). The goal of this step is simply to create growth percentiles and
-#' merge them into the longitudinal data before aggregation and investigation
-#' of the impact non-census testing has on school accountability measures. 
+#' applied, via `R` code configurations, to the same set of data, thus only
+#' producing growth measures for students with valid records in the appropriate
+#' grades, content areas and years. At the end of each condition-specific
+#' analysis, the SGP variable is renamed to indicate the simulated condition
+#' before proceeding to the next condition-specific growth analysis step.
+#' Only cohort-referenced SGPs are calculated (growth projections and targets
+#' are omitted). The goal of this step is simply to create growth percentiles
+#' and merge them into a single longitudinal dataset before aggregation and
+#' investigation of the impact non-census testing has on school accountability
+#' measures.
+#'
+#' The code presented below is provided as an example of how the growth
+#' calculations are conducted for all states in the study. The student data for
+#' each state will be cleaned and formatted according to the study guidelines,
+#' as was done with the exemplar data from the `SGP` package (@sgp) in the
+#' example Phase 1 code in the previous section.
 #'
 #' ## Load SGP package and modify `SGPstateData`
 #'
@@ -27,6 +33,7 @@ if (!exists("workers")) workers <- parallel::detectCores(logical = FALSE)/2
 #+ sgp-calc-pkg, echo = TRUE, purl = TRUE
 require(SGP)
 require(data.table)
+source("../functions/calculate_SGPs.R")
 
 #' We will use the assessment meta-data from the "Demonstration_COVID"
 #' (abbreviated "DEMO_COVID") dataset stored in the `SGPstateData` object.
@@ -34,12 +41,18 @@ require(data.table)
 #'
 #+ sgp-calc-meta, echo = TRUE, purl = TRUE
 SGPstateData[["State_A"]] <- SGPstateData[["DEMO_COVID"]]
+
+#+ sgp-calc-meta-misc, echo = FALSE, purl = TRUE
 SGPstateData[["State_A"]][["Growth"]][["Levels"]] <-
   SGPstateData[["State_A"]][["Growth"]][["Cutscores"]] <-
     SGPstateData[["State_A"]][["SGP_Configuration"]][["percentile.cuts"]] <-
       NULL
 
-#+ sgp-calc-data, echo = TRUE, purl = TRUE
+
+#' # Condition-Specific Growth Analyses
+#'
+#' 
+#+ sgp-calc-data, echo = FALSE, purl = TRUE
 #  Load cleaned, merged and formatted data
 if (!exists("State_A_Data_LONG")) {
   source("../functions/freadZIP.R")
@@ -152,11 +165,8 @@ setwd("..")
 #' in case we need to replicate or compare results from this condition analysis.
 #' 
 #+ cond-0-cleanup, echo = TRUE, message = FALSE, purl = TRUE
-rm(State_A_Data_LONG)
-State_A_Data_LONG <- copy(State_A_SGP@Data)
-
-setnames(x = State_A_Data_LONG, old = "SGP", new = "SGP_Cnd_0")
-State_A_Data_LONG[,
+setnames(x = State_A_SGP@Data, old = "SGP", new = "SGP_Cnd_0")
+State_A_SGP@Data[,
     c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
       "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
     ) := NULL
@@ -165,7 +175,7 @@ State_A_Data_LONG[,
 Condition_0_CoefMatrices <- copy(State_A_SGP@SGP[["Coefficient_Matrices"]])
 save(Condition_0_CoefMatrices,
      file = "./Condition_0/Condition_0_CoefMatrices.rda")
-
+State_A_SGP@SGP <- NULL
 
 #+ cond-1b, include = FALSE, purl = FALSE
 #####
@@ -213,7 +223,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_1b.R")
 
-state.a.config <-
+sgp_config.c1b <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -228,58 +238,19 @@ state.a.config <-
 #' and all other relevant arguments remain the same.
 #'
 #+ cond-1b-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
-setwd("./Condition_1b")
 State_A_SGP <-
-    abcSGP(
-        sgp_object = State_A_Data_LONG,
-        state = "State_A",
-        steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = state.a.config,
-        sgp.percentiles = TRUE,
-        sgp.projections = FALSE,
-        sgp.projections.lagged = FALSE,
-        sgp.percentiles.baseline = FALSE,
-        sgp.projections.baseline = FALSE,
-        sgp.projections.lagged.baseline = FALSE,
-        simulate.sgps = FALSE,
-        parallel.config = list(
-            BACKEND = "PARALLEL",
-            WORKERS = workers
-        )
+    calculate_SGPs(
+      sgp_data = State_A_SGP,
+      config = sgp_config.c1b,
+      condition = "1b",
+      workers = list(TAUS = 15)
     )
-setwd("..")
-
-rm(State_A_Data_LONG)
-State_A_Data_LONG <- copy(State_A_SGP@Data)
-
-setnames(x = State_A_Data_LONG, old = "SGP", new = "SGP_Cnd_1b")
-State_A_Data_LONG[,
-    c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
-      "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
-    ) := NULL
-]
-
-Condition_1b_CoefMatrices <- copy(State_A_SGP@SGP[["Coefficient_Matrices"]])
-save(Condition_1b_CoefMatrices,
-     file = "./Condition_1b/Condition_1b_CoefMatrices.rda")
-
-
-#+ cond-1b-trimrepo, echo = FALSE, message = FALSE, purl = TRUE
-setwd("./Condition_1b")
-all.files <-
-  list.files("Goodness_of_Fit", recursive = TRUE, full.names = TRUE)
-flrm.tf <-
-  file.remove(grep(".pdf|.Rdata", all.files, value = TRUE))
-unlk.tf <-
-  unlink(grep("Decile_Tables", list.dirs(), value=TRUE), recursive = TRUE)
-setwd("..")
 
 
 #+ cond-1c, include = FALSE, purl = FALSE
 #####
 ##     Condition 1c
 #####
-if (!dir.exists("./Condition_1c")) dir.create("./Condition_1c")
 
 #' ## Simulation Condition 1c
 #' 
@@ -320,7 +291,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_1c.R")
 
-state.a.config <-
+sgp_config.c1c <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -329,62 +300,25 @@ state.a.config <-
 
 #' ### Calculate condition 1c SGPs
 #'
-#' The call to the`abcSGP` function here is identical to that made for
-#' conditions 1b and 2. The data object `State_A_Data_LONG` now includes the
-#' results from conditions 0 and 1b, and the configurations have been updated.
+#' The call to the`calculate_SGPs` function here performs the same calculation
+#' tasks as those made for conditions 1b. The `config` list specifies the
+#' cohort data to use in the growth analyses, and the `condition` argument will
+#' be used to create and change directories in which the analyses are run, and
+#' rename the SGP variable for this condition calculations.
 #'
 #+ cond-1c-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
-setwd("./Condition_1c")
 State_A_SGP <-
-    abcSGP(
-        sgp_object = State_A_Data_LONG,
-        state = "State_A",
-        steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = state.a.config,
-        sgp.percentiles = TRUE,
-        sgp.projections = FALSE,
-        sgp.projections.lagged = FALSE,
-        sgp.percentiles.baseline = FALSE,
-        sgp.projections.baseline = FALSE,
-        sgp.projections.lagged.baseline = FALSE,
-        simulate.sgps = FALSE,
-        parallel.config = list(
-            BACKEND = "PARALLEL",
-            WORKERS = workers
-        )
+    calculate_SGPs(
+      sgp_data = State_A_SGP,
+      config = sgp_config.c1c,
+      condition = "1c",
+      workers = list(TAUS = 15)
     )
-setwd("..")
-
-rm(State_A_Data_LONG)
-State_A_Data_LONG <- copy(State_A_SGP@Data)
-
-setnames(x = State_A_Data_LONG, old = "SGP", new = "SGP_Cnd_1c")
-State_A_Data_LONG[,
-    c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
-      "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
-    ) := NULL
-]
-
-Condition_1c_CoefMatrices <- copy(State_A_SGP@SGP[["Coefficient_Matrices"]])
-save(Condition_1c_CoefMatrices,
-     file = "./Condition_1c/Condition_1c_CoefMatrices.rda")
-
-#+ cond-1c-trimrepo, echo = FALSE, message = FALSE, purl = TRUE
-setwd("./Condition_1c")
-all.files <-
-  list.files("Goodness_of_Fit", recursive = TRUE, full.names = TRUE)
-flrm.tf <-
-  file.remove(grep(".pdf|.Rdata", all.files, value = TRUE))
-unlk.tf <-
-  unlink(grep("Decile_Tables", list.dirs(), value=TRUE), recursive = TRUE)
-setwd("..")
-
 
 #+ cond-2, include = FALSE, purl = FALSE
 #####
 ##     Condition 2
 #####
-if (!dir.exists("./Condition_2")) dir.create("./Condition_2")
 
 #' ## Simulation Condition 2
 #' 
@@ -421,7 +355,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_2.R")
 
-state.a.config <-
+sgp_config.c2 <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -430,56 +364,20 @@ state.a.config <-
 
 #' ### Calculate condition 2 SGPs
 #'
-#' The call to the`abcSGP` function here is identical to that made for
-#' conditions 1b and 1c. The data object `State_A_Data_LONG` now includes the
-#' results from conditions 0 through 1c, and the configuration object,
-#' `state.a.config`, has been updated.
+#' The call to the`calculate_SGPs` function here performs the same calculation
+#' tasks as those made for conditions 1b and 1c. The `config` list specifies the
+#' cohort data to analyze for condition 2, and the data object `State_A_SGP@Data`
+#' will now include the results from conditions 0 through 2 when the calculations
+#' are complete.
 #'
 #+ cond-2-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
-setwd("Condition_2")
 State_A_SGP <-
-    abcSGP(
-        sgp_object = State_A_Data_LONG,
-        state = "State_A",
-        steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = state.a.config,
-        sgp.percentiles = TRUE,
-        sgp.projections = FALSE,
-        sgp.projections.lagged = FALSE,
-        sgp.percentiles.baseline = FALSE,
-        sgp.projections.baseline = FALSE,
-        sgp.projections.lagged.baseline = FALSE,
-        simulate.sgps = FALSE,
-        parallel.config = list(
-            BACKEND = "PARALLEL",
-            WORKERS = workers
-        )
+    calculate_SGPs(
+      sgp_data = State_A_SGP,
+      config = sgp_config.c2,
+      condition = "2",
+      workers = list(TAUS = 15)
     )
-setwd("..")
-
-rm(State_A_Data_LONG)
-State_A_Data_LONG <- copy(State_A_SGP@Data)
-
-setnames(x = State_A_Data_LONG, old = "SGP", new = "SGP_Cnd_2")
-State_A_Data_LONG[,
-    c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
-      "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
-    ) := NULL
-]
-
-Condition_2_CoefMatrices <- copy(State_A_SGP@SGP[["Coefficient_Matrices"]])
-save(Condition_2_CoefMatrices,
-     file = "./Condition_2/Condition_2_CoefMatrices.rda")
-
-#+ cond-2-trimrepo, echo = FALSE, message = FALSE, purl = TRUE
-setwd("Condition_2")
-all.files <-
-  list.files("Goodness_of_Fit", recursive = TRUE, full.names = TRUE)
-flrm.tf <-
-  file.remove(grep(".pdf|.Rdata", all.files, value = TRUE))
-unlk.tf <-
-  unlink(grep("Decile_Tables", list.dirs(), value=TRUE), recursive = TRUE)
-setwd("..")
 
 
 #+ cond-3, include = FALSE, purl = FALSE
@@ -532,7 +430,7 @@ ELA_2019.config <- list(
 #' grade 6) will be omitted.
 #'
 #+ cond-3-sgp-copy, echo = TRUE, message = FALSE, purl = TRUE
-State_A_Data_LONG[
+State_A_SGP@Data[
     GRADE %in% c(5, 8),
     SGP_Cnd_3 := SGP_Cnd_1b
 ]
@@ -540,12 +438,13 @@ State_A_Data_LONG[
 
 #' ##  Save data
 #'
-#+ data-analysis-save, echo = TRUE, purl = TRUE, eval = FALSE
+#+ data-analysis-save, echo = TRUE, purl = TRUE
 if (!dir.exists("Data/Student_Growth"))
     dir.create("Data/Student_Growth", recursive = TRUE)
 
-save("State_A_Data_LONG", file = "Data/Student_Growth/State_A_Data_LONG.rda")
+State_A_Data_LONG <- copy(State_A_SGP@Data)
+save(State_A_Data_LONG, file = "Data/Student_Growth/State_A_Data_LONG.rda")
 
 fname <- "Data/Student_Growth/Student_LongTestData_State_A_2016-2019_AVI.csv"
-fwrite(State_A_Data_LONG, file = fname)
+fwrite(State_A_SGP@Data, file = fname)
 zip(zipfile = paste0(fname, ".zip"), files = fname, flags = "-mqj")

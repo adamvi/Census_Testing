@@ -49,13 +49,14 @@ paged-footnotes: yes
 ---
 keywords: "draft -- do not cite"
 abstract:
-  This appendix contains the code used to prepare and format the data required
-  for each condition of the **\"Re-evaluating the Efficiency and Efficacy of
-  Annual Census Standardized Testing for Accountability Purposes\"** study.
-  Each condition requires the data to be formatted in a consistent manner, and
-  addition variables to be created. With the properly formatted and amended
-  data, we then proceed with the Student Growth Percentiles (SGP) analyses and
-  results aggregations.
+  This appendix contains example code used to conduct Phases 1 and 2 of the
+  **\"Re-evaluating the Efficiency and Efficacy of Annual Census Standardized
+  Testing for Accountability Purposes\"** study. In Phase 1 we prepare and
+  format the data in a manner that will be consistent across all states and
+  satisfies the requirements for growth analyses using the `SGP` software
+  package. With the properly formatted data, we then proceed with the Student
+  Growth Percentiles (SGP) analyses and school level results aggregations in
+  the Phase 2 code.
 ---
 ```
 
@@ -72,28 +73,47 @@ abstract: '", sub("\n\n  ", "", inside.cover), "'
 ```
 
 ```{asis, echo = grepl("final", tolower(params$format))}
-# Executive summary
+# Introduction
 
-This appendix contains the code used to prepare and format the data required
-for each condition of the **"Re-evaluating the Efficiency and Efficacy of
-Annual Census Standardized Testing for Accountability Purposes"** study.
-Each condition requires the data to be formatted in a consistent manner, and
-addition variables to be created. With the properly formatted and amended
-data, we then proceed with the Student Growth Percentiles (SGP) analyses and
-results aggregations.
+This report contains example code used to conduct Phases 1 and 2 of the
+**\"Re-evaluating the Efficiency and Efficacy of Annual Census Standardized
+Testing for Accountability Purposes\"** study. In Phase 1 we prepare and
+format the student data in a manner that will be consistent across all states
+and satisfies the requirements for growth analyses using the `SGP` software
+package. With the properly formatted data, we then proceed with the Student
+Growth Percentiles (SGP) analyses and school level results aggregations in
+the Phase 2 code.
+
+Each phase of this example analysis uses simulated state assessment data that is
+available in the [`SGP` package](https://github.com/CenterForAssessment/SGP) [@sgp]
+for the [`R` Software Environment](http://www.r-project.org/) [@Rsoftware].
+This data is used here so that the interested reader can also run the code as
+presented to reproduce the analytic workflow we have used for Phases 1 and 2 of
+this report.
+
+The dataset that is produced in the Phase 1 process represents an exemplar of
+the data required for subsequent steps in this study. In this phase, each state
+requires customized code adapted to the data as provided by each state's
+education agency/authority. However, the end product in each state conforms to
+the naming and data formatting conventions described and encoded here.
+
+Given the properly cleaned and formatted data from Phase 1, each state's student
+growth analyses follow a nearly identical workflow through each replicated
+assessment condition. Each state's results are then aggregated at the school
+level, again using an identical workflow.
 ```
 
 
 ```{r data-prep-r, echo = FALSE}
-  knitr::spin_child("../State_A/Phase_1_Data-State_A.R")
+  knitr::spin_child("../State_A/Phase_1-Data_Prep-State_A.R")
 ```
 
 ```{r sgp-analysis-0, echo = FALSE}
-  knitr::spin_child("../State_A/Phase_2_Analysis-State_A.R")
+  knitr::spin_child("../State_A/Phase_2-Growth_Analysis-State_A.R")
 ```
 
 ```{r aggr-v1, echo = FALSE}
-  knitr::spin_child("../State_A/Phase_3_Aggregation-State_A.R")
+  knitr::spin_child("../State_A/Phase_2-Results_Aggregation-State_A.R")
 ```
 
 <!--  References  -->

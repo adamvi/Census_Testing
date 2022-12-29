@@ -44,16 +44,6 @@ Georgia_Data_LONG <-
         STUDENT_GRADE_LEVEL %in% 3:8,
     ]
 
-# Make SchoolID unique - based on SGP code from GA Milestones
-Georgia_Data_LONG[,
-    SchoolID := as.numeric(SYSTEM_ID)*10000 + as.numeric(SCHOOL_ID)
-]
-Georgia_Data_LONG[
-    which(as.numeric(SYSTEM_ID) > 1000),
-      SchoolID := as.numeric(SYSTEM_ID)
-]
-Georgia_Data_LONG[, SchoolID := as.integer(SchoolID)]
-
 
 #+ data-prep-rename, echo = TRUE, purl = TRUE, eval = FALSE
 gw_var_names <-
@@ -71,6 +61,21 @@ setnames(
   new = gw_var_names
 )
 setcolorder(Georgia_Data_LONG, gw_var_names)
+
+
+#' We have also decided to make schools unique by the grade levels that they
+#' serve (i.e. elementary and middle)
+
+#+ data-prep-schid, echo = TRUE, purl = TRUE
+Georgia_Data_LONG[,
+    SchoolID := as.character(SYSTEM_ID*10000 + SCHOOL_ID)
+][which(SYSTEM_ID > 1000),
+    SchoolID := as.character(SYSTEM_ID)
+][GRADE %in% 3:5,
+    SchoolID := paste0(SchoolID, "E")
+][GRADE %in% 6:8,
+    SchoolID := paste0(SchoolID, "M")
+]
 
 
 #' ### Tiddy up `SGP` required variables and student demographics
