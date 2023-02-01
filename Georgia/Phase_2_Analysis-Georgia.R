@@ -70,13 +70,13 @@ ELA_2019.config <- list(
 )
 
 #' All configurations are housed in condition specific `R` code scripts. Here
-#' we read these in and combine them into a single list object, `georgia.config`,
+#' we read these in and combine them into a single list object, `cohort.config`,
 #' that will be supplied to the `abcSGP` function.
 #' 
 #+ cond-0-config, echo = TRUE, purl = TRUE
 source("SGP_CONFIG/Condition_0.R")
 
-ga.config.c0 <-
+cohort.config.c0 <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -94,63 +94,14 @@ ga.config.c0 <-
 #' The SGP analysis section of the appendix assumes the user is operating with
 #' their working directory set to "*./Condition_0*".
 
-#+ cond-0-wd1, echo = TRUE, purl = TRUE
+#+ cond-0-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
 Georgia_SGP <-
     calculate_SGPs(
       sgp_data = Georgia_Data_LONG,
-      config = ga.config.c0,
+      config = cohort.config.c0,
       condition = "0",
-      workers = list(TAUS = 15)
+      workers = list(TAUS = 22)
     )
-
-#+ cond-0-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
-setwd("./Condition_0")
-Georgia_SGP <-
-    abcSGP(
-        sgp_object = Georgia_Data_LONG,
-        state = "GA",
-        steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
-        sgp.config = georgia.config,
-        sgp.percentiles = TRUE,
-        sgp.projections = FALSE,
-        sgp.projections.lagged = FALSE,
-        sgp.percentiles.baseline = FALSE,
-        sgp.projections.baseline = FALSE,
-        sgp.projections.lagged.baseline = FALSE,
-        simulate.sgps = FALSE,
-        parallel.config = list(
-            BACKEND = "PARALLEL",
-            WORKERS = list(TAUS = 15)
-        )
-    )
-
-#+ cond-0-trimrepo, echo = FALSE, message = FALSE, purl = TRUE
-# Since we will only be using the growth results for creating reports, we
-# remove all extraneous (pdf) versions of the model fit plots (created in the
-# "Goodness_of_Fit" directory at completion of the call to `abcSGP` above).
-all.files <-
-  list.files("Goodness_of_Fit", recursive = TRUE, full.names = TRUE)
-flrm.tf <-
-  file.remove(grep(".pdf|.Rdata", all.files, value = TRUE))
-unlk.tf <-
-  unlink(grep("Decile_Tables", list.dirs(), value=TRUE), recursive = TRUE)
-setwd("..")
-
-#' ###  Re-name and remove the SGP variables as necessary
-#' 
-#' In order to keep all growth results in the same longitudinal dataset, we
-#' will add a `Cnd_0` tag to growth related variables of interest. Extraneous
-#' variables will be removed as well before moving on to the next simulation
-#' condition. We will save the coefficient matrices from all separate analyses
-#' in case we need to replicate or compare results from this condition analysis.
-#'
-#+ cond-0-cleanup, echo = TRUE, message = FALSE, purl = TRUE
-setnames(x = Georgia_SGP@Data, old = "SGP", new = "SGP_Cnd_0")
-Georgia_SGP@Data[,
-    c("SGP_NORM_GROUP", "SGP_NORM_GROUP_SCALE_SCORES",
-      "SCALE_SCORE_PRIOR", "SCALE_SCORE_PRIOR_STANDARDIZED"
-    ) := NULL
-]
 
 
 #+ cond-1b, include = FALSE, purl = FALSE
@@ -198,7 +149,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_1b.R")
 
-ga.config.c1b <-
+cohort.config.c1b <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -217,9 +168,9 @@ ga.config.c1b <-
 Georgia_SGP <-
     calculate_SGPs(
       sgp_data = Georgia_SGP,
-      config = ga.config.c1b,
+      config = cohort.config.c1b,
       condition = "1b",
-      workers = list(TAUS = 15)
+      workers = list(TAUS = 22)
     )
 
 
@@ -267,7 +218,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_1c.R")
 
-ga.config.c1c <-
+cohort.config.c1c <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -285,9 +236,9 @@ ga.config.c1c <-
 Georgia_SGP <-
     calculate_SGPs(
       sgp_data = Georgia_SGP,
-      config = ga.config.c1c,
+      config = cohort.config.c1c,
       condition = "1c",
-      workers = list(TAUS = 15)
+      workers = list(TAUS = 22)
     )
 
 
@@ -331,7 +282,7 @@ ELA_2019.config <- list(
 rm(list = grep(".config", ls(), value = TRUE))
 source("SGP_CONFIG/Condition_2.R")
 
-ga.config.c2 <-
+cohort.config.c2 <-
     c(ELA_2019.config,
       MATHEMATICS_2019.config,
       ELA_2018.config,
@@ -343,16 +294,16 @@ ga.config.c2 <-
 #' The call to the`abcSGP` function here is identical to that made for
 #' conditions 1b and 1c. The data object `Georgia_SGP@Data` now includes the
 #' results from conditions 0 through 1c, and the configuration object,
-#' `georgia.config`, has been updated.
+#' `cohort.config`, has been updated.
 #'
 #+ cond-2-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
 
 Georgia_SGP <-
     calculate_SGPs(
       sgp_data = Georgia_SGP,
-      config = ga.config.c2,
+      config = cohort.config.c2,
       condition = "2",
-      workers = list(TAUS = 15)
+      workers = list(TAUS = 22)
     )
 
 
@@ -360,12 +311,11 @@ Georgia_SGP <-
 #####
 ##     Condition 3
 #####
-if (!dir.exists("./Data")) dir.create("./Data")
 
 #' ## Simulation Condition 3
 #' 
 #' In this condition, all students are tested every two years at specific grade
-#' and subject on the state’s assessments. As with Condition 2, there are two
+#' and subject on the state's assessments. As with Condition 2, there are two
 #' instances of this condition to simulate:
 #' 
 #' * Testing only occurs in even years - (e.g., 2016, 2018, etc.)
@@ -411,13 +361,102 @@ Georgia_SGP@Data[
     SGP_Cnd_3 := SGP_Cnd_1b
 ]
 
+
+#+ cond-4, include = FALSE, purl = FALSE
+#####
+##     Condition 4
+#####
+
+#' ## Simulation Condition 4
+#' 
+#' In this condition, all students are tested every year, subject and grade
+#' (identical testing patterns to the base Condition 0), but the length of the
+#' state's assessments are reduced by half. The shorter tests are simulated using
+#' the reliability of the original test and generalizability theory.
+#'
+#' The growth analyses for this condition are identical to that used in Condition
+#' 0, including consecutive-year assessment patterns for grades 4 to 8. Students
+#' with a valid score from the previous year and grade level in their
+#' historical data will be included in the growth calculations and receive a
+#' SGP. Up to two prior scores will be used as available in the data.
+
+#' ### SGP config scripts
+#'
+#' The configuration scripts used for this condition are identical to those from
+#' Condition 0. As a refresher, the 2019 mathematics analyses/cohorts are specified
+#' with this code:
+#'
+#+ cond-4-config-ex, echo = TRUE, purl = TRUE
+MATHEMATICS_2019.config <- list(
+    MATHEMATICS.2019 = list(
+        sgp.content.areas = rep("MATHEMATICS", 3),
+        sgp.panel.years = c("2017", "2018", "2019"),
+        sgp.grade.sequences = list(
+            c("3", "4"), c("3", "4", "5"), # Elementary Grades
+            c("4", "5", "6"), c("5", "6", "7"), c("6", "7", "8") # Middle
+        )
+    )
+)
+
+#+ cond-4-config, echo = TRUE, purl = TRUE
+rm(list = grep(".config", ls(), value = TRUE))
+source("SGP_CONFIG/Condition_0.R")
+
+cohort.config.c4 <-
+    c(ELA_2019.config,
+      MATHEMATICS_2019.config,
+      ELA_2018.config,
+      MATHEMATICS_2018.config
+    )
+
+#' ### Calculate condition 4 SGPs
+#'
+#' The call to the`abcSGP` function here is identical to that made for
+#' conditions 1b, 1c and 2. The data object `Georgia_SGP@Data` now includes
+#' the results from conditions 0 through 3, and the configuration object,
+#' `cohort.config`, has been updated.
+#'
+
+#+ cond-4-rename, echo = TRUE, message = FALSE, purl = TRUE
+setnames(
+    Georgia_SGP@Data,
+    c("SCALE_SCORE", "ACHIEVEMENT_LEVEL",
+      "SCALE_SCORE_Short", "ACHIEVEMENT_LEVEL_Short"
+    ),
+    c("SS_ACTUAL", "ACH_LEV_ACTUAL",
+      "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
+    )
+)
+
+#+ cond-4-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
+Georgia_SGP <-
+    calculate_SGPs(
+      sgp_data = Georgia_SGP,
+      config = cohort.config.c4,
+      condition = "4",
+      workers = list(TAUS = 22)
+    )
+
+
 #' ##  Save data
 #'
+#' With all condition-specific growth percentile calculations completed and
+#' available for the next phases of the studey, we can save the longitudinal
+#' dataset and conclude this portion of Phase 2.
+
 #+ data-analysis-save, echo = TRUE, purl = TRUE, eval = FALSE
 if (!dir.exists("Data/Student_Growth"))
     dir.create("Data/Student_Growth", recursive = TRUE)
 
-
+setnames(
+    Georgia_SGP@Data,
+    c("SS_ACTUAL", "ACH_LEV_ACTUAL",
+      "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
+    ),
+    c("SCALE_SCORE", "ACHIEVEMENT_LEVEL",
+      "SCALE_SCORE_Short", "ACHIEVEMENT_LEVEL_Short"
+    )
+)
 Georgia_Data_LONG <- copy(Georgia_SGP@Data)
 
 save("Georgia_Data_LONG", file = "Data/Student_Growth/Georgia_Data_LONG.rda")

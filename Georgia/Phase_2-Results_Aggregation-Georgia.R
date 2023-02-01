@@ -27,18 +27,18 @@ if (!dir.exists("./Data/School_Summaries")) dir.create("./Data/School_Summaries"
 #' To simplify the analysis and enable comparisons of results across
 #' participating states, we plan to simulate a standard "prototype"
 #' accountability model with the following features.
-#' 
+#'
 #' ***Reporting***
-#' 
+#'
 #' * The minimum n-count for computing scores for schools and disaggregated
 #'   student groups is varied depending on the simulated condition.
 #' * The disaggregated student groups should include economically disadvantaged
 #'   students, students from racial and ethnic groups, children with
 #'   disabilities, and English learners, as long as they meet the minimum
 #'   n-count threshold in the simulated condition.
-#' 
+#'
 #' ***Indicators***
-#' 
+#'
 #' * **Academic achievement** is the percentage of students in the school
 #'   meeting the proficiency in ELA and mathematics (as defined by the
 #'  'Proficient' cut score on the statewide assessment).
@@ -55,7 +55,7 @@ if (!dir.exists("./Data/School_Summaries")) dir.create("./Data/School_Summaries"
 #'     between administrations for the school or student group.
 #'
 #' ***Summative Rating Computation***
-#' 
+#'
 #' All indicator scores are standardized by transforming into z-scores. Use the
 #' following means and standard deviations (SD) for the z-score computations
 #' (of all schools and student groups):
@@ -92,6 +92,7 @@ Georgia_Data_LONG[,
     ACHIEVEMENT_LEVEL %in% c("Proficient Learner", "Distinguished Learner"), 1L
   )
 ]
+# Georgia_Data_LONG[Race == "Pacific", Race := "Asian"]
 
 
 #' ##  Condition specific summary tables - all students by schools
@@ -101,7 +102,7 @@ Georgia_Data_LONG[,
 #' implement what I've read in the "Analysis Specification" document.
 #' This is how I would approach this (sub-)Phase given my past experience in
 #' aggregating growth and achievement data.
-#' 
+#'
 #' The following is an example of a preliminary school-level aggregation table
 #' for condition 0. Each condition will have a similar table, generally with
 #' only the appropriate `SGP` variable substituted for `SGP_Cnd_0` and changes
@@ -152,7 +153,7 @@ setnames(
 #' interest into the `keyby` argument of the `data.table` aggregation. Since we
 #' are going to be doing this numerous times, we will use a custom function to
 #' create these tables, rather than copying the code for each use case.
-#' 
+#'
 #+ agg-sgp-conds-all-stdnt, echo = FALSE, purl = TRUE
 source("../functions/schoolAggrGator.R")
 
@@ -187,7 +188,12 @@ school_aggregation_all_students <-
           data_table =
             Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8)],
           growth.var = "SGP_Cnd_3"
-        )[, Condition := "3"]
+        )[, Condition := "3"],
+        schoolAggrGator(
+          data_table =
+            Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8)],
+          growth.var = "SGP_Cnd_4"
+        )[, Condition := "4"]
       )
     )[, Group := "All"] |>
       setcolorder(c("Condition", "SchoolID", "Group", "YEAR")) |>
@@ -237,6 +243,7 @@ sch_summary_cnd_1a <-
     Georgia_Data_LONG[
         GRADE %in% c(5, 8),
         .(N = sum(!is.na(SCALE_SCORE)),
+          ProfN = sum(PROFICIENCY == 1L),
           MeanScore = mean(SCALE_SCORE, na.rm = TRUE),
           ScoreSD = sd(SCALE_SCORE, na.rm = TRUE)
         ),
@@ -311,7 +318,7 @@ sch_summary_cnd_1a <-
         data = sch_summary_cnd_1a,
         formula = SchoolID + YEAR ~ GRADE + CONTENT_AREA,
         sep = "..",
-        value.var = c("N", "ZDiff")
+        value.var = c("N", "ProfN", "ZDiff")
     )
 setnames(
     sch_summary_cnd_1a,
@@ -340,7 +347,8 @@ sch_summary_cnd_1a[,
   ELA_Improve := ELA_G8_ZDiff
 ][
   !is.na(ELA_G5_ZDiff) & !is.na(ELA_G8_ZDiff),
-  ELA_Improve := ((ELA_G5_ZDiff * ELA_G5_N) + (ELA_G8_ZDiff * ELA_G8_N))/(ELA_G5_N + ELA_G8_N)
+  ELA_Improve :=
+    ((ELA_G5_ZDiff * ELA_G5_N) + (ELA_G8_ZDiff * ELA_G8_N))/(ELA_G5_N + ELA_G8_N)
 ][,
   Math_Improve := Math_G5_ZDiff
 ][
@@ -348,10 +356,23 @@ sch_summary_cnd_1a[,
   Math_Improve := Math_G8_ZDiff
 ][
   !is.na(Math_G5_ZDiff) & !is.na(Math_G8_ZDiff),
-  Math_Improve := ((Math_G5_ZDiff * Math_G5_N) + (Math_G8_ZDiff * Math_G8_N))/(Math_G5_N + Math_G8_N)
+  Math_Improve :=
+    ((Math_G5_ZDiff * Math_G5_N) + (Math_G8_ZDiff * Math_G8_N))/(Math_G5_N + Math_G8_N)
+][,
+  ELA_TotalN := rowSums(.SD, na.rm = TRUE),
+  .SDcols = c("ELA_G5_N", "ELA_G8_N")
+][,
+  Math_TotalN := rowSums(.SD, na.rm = TRUE),
+  .SDcols = c("Math_G5_N", "Math_G8_N")
+][,
+  ELA_ProfN := rowSums(.SD, na.rm = TRUE),
+  .SDcols = c("ELA_G5_ProfN", "ELA_G8_ProfN")
+][,
+  Math_ProfN := rowSums(.SD, na.rm = TRUE),
+  .SDcols = c("Math_G5_ProfN", "Math_G8_ProfN")
 ]
 
-sch_summary_cnd_1a[, (grep("ZDiff", names(sch_summary_cnd_1a))) := NULL]
+sch_summary_cnd_1a[, (grep("G5|G8", names(sch_summary_cnd_1a))) := NULL]
 
 
 #' Finally, we add the `Group` variable to indicate this data set is for all
@@ -460,6 +481,18 @@ school_aggregation_student_demogs <-
               groups = c("SchoolID", "YEAR", "CONTENT_AREA", f)
             )[, Condition := "3"] |> setnames(f, "Group")
           }
+        ) |> rbindlist(),
+        lapply(
+          c("Race", "EconDis", "EL", "SWD"),
+          \(f) {
+            schoolAggrGator(
+              data_table =
+                Georgia_Data_LONG[
+                  YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8), ],
+              growth.var = "SGP_Cnd_4",
+              groups = c("SchoolID", "YEAR", "CONTENT_AREA", f)
+            )[, Condition := "4"] |> setnames(f, "Group")
+          }
         ) |> rbindlist()
       )
     ) |>
@@ -528,7 +561,7 @@ school_aggregation_all[
 
 fprefix <- "./Data/School_Summaries/School_Condition_"
 
-for (cond in c("0", "1a", "1b", "1c", "2_E", "2_O", "3_E", "3_O")) {
+for (cond in c("0", "1a", "1b", "1c", "2_E", "2_O", "3_E", "3_O", "4")) {
   for (yr in 2018:2019) {
     tmp.tbl <-
       school_aggregation_all[
