@@ -59,6 +59,7 @@ cond1aAggrGator =
     data_table[
         GRADE %in% c(5, 8),
         .(N = sum(!is.na(SCALE_SCORE)),
+          ProfN = sum(PROFICIENCY == 1L),
           MeanScore = mean(SCALE_SCORE, na.rm = TRUE),
           ScoreSD = sd(SCALE_SCORE, na.rm = TRUE)
         ),
@@ -98,7 +99,7 @@ cond1aAggrGator =
         data = smry_cnd_1a,
         formula = frmla,
         sep = "..",
-        value.var = c("N", "ZDiff")
+        value.var = c("N", "ProfN", "ZDiff")
       )
   setnames(
     smry_cnd_1a,
@@ -129,9 +130,21 @@ cond1aAggrGator =
     !is.na(Math_G5_ZDiff) & !is.na(Math_G8_ZDiff),
     Math_Improve :=
       ((Math_G5_ZDiff * Math_G5_N) + (Math_G8_ZDiff * Math_G8_N))/(Math_G5_N + Math_G8_N)
+  ][,
+    ELA_TotalN := rowSums(.SD, na.rm = TRUE),
+    .SDcols = c("ELA_G5_N", "ELA_G8_N")
+  ][,
+    Math_TotalN := rowSums(.SD, na.rm = TRUE),
+    .SDcols = c("Math_G5_N", "Math_G8_N")
+  ][,
+    ELA_ProfN := rowSums(.SD, na.rm = TRUE),
+    .SDcols = c("ELA_G5_ProfN", "ELA_G8_ProfN")
+  ][,
+    Math_ProfN := rowSums(.SD, na.rm = TRUE),
+    .SDcols = c("Math_G5_ProfN", "Math_G8_ProfN")
   ]
-
-  smry_cnd_1a[, (grep("ZDiff", names(smry_cnd_1a))) := NULL]
+  
+  smry_cnd_1a[, (grep("G5|G8", names(smry_cnd_1a))) := NULL]
 
   if (!is.null(group)) {
     setnames(smry_cnd_1a, group, "Group")
