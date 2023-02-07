@@ -10,7 +10,8 @@ accountabilityModel =
     setkey(cond_summary_table, SchoolID, Group)
 
     tmp_mf_tbl <-
-      state_indicators[cond_summary_table][
+      cond_summary_table[state_indicators][
+          !(is.na(ELA_PartRate) | is.na(Math_PartRate)) &
           ELA_TotalN > min.n &    # 2.a
           Math_TotalN > min.n     # 2.b
       ]
@@ -62,8 +63,8 @@ accountabilityModel =
           Other_SD = sd(Other_Score, na.rm = TRUE),
           ProgELP_Mean = mean(ProgELP, na.rm = TRUE),
           ProgELP_SD = sd(ProgELP, na.rm = TRUE),
-          SQSS_Mean = mean(SQSS_Score, na.rm = TRUE),
-          SQSS_SD = sd(SQSS_Score, na.rm = TRUE)
+          SQSS_Mean = mean(SQSS, na.rm = TRUE),
+          SQSS_SD = sd(SQSS, na.rm = TRUE)
           # GradRate_Mean = mean(GradRate, na.rm = TRUE),
           # GradRate_SD = sd(GradRate, na.rm = TRUE)
         )
@@ -75,9 +76,9 @@ accountabilityModel =
     ][,
       Other_Z := (Other_Score - indc_smry$Other_Mean)/indc_smry$Other_SD
     ][,
-      ProgELP_Z := (ProgELP - indc_smry$ProgELP_Mean)/indc_smry$ProgELP_SD # ProgELP_Score
+      ProgELP_Z := (ProgELP - indc_smry$ProgELP_Mean)/indc_smry$ProgELP_SD
     ][,
-      SQSS_Z := (SQSS_Score - indc_smry$SQSS_Mean)/indc_smry$SQSS_SD
+      SQSS_Z := (SQSS - indc_smry$SQSS_Mean)/indc_smry$SQSS_SD
     ]#[,
     #   GradRate_Z := (GradRate_Score - indc_smry$GradRate_Mean)/indc_smry$GradRate_SD
     # ]
