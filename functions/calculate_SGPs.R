@@ -6,10 +6,10 @@ calculate_SGPs =
         # Create a folder "Condition_0" if it doesn't already exist
         folder_name <- paste0("./Condition_", condition)
         if (!dir.exists(folder_name)) dir.create(folder_name)
-        
+
         # Calculate the SGPs using given config info
         setwd(folder_name)
-        
+
         SGP_object <-
             abcSGP(
                 sgp_object = sgp_data,
@@ -34,12 +34,12 @@ calculate_SGPs =
             list.files("Goodness_of_Fit", recursive = TRUE, full.names = TRUE)
         file.remove(grep(".pdf|.Rdata", all.files, value = TRUE))
         unlink(grep("Decile_Tables", list.dirs(), value=TRUE), recursive = TRUE)
-        
+
         # We will save the coefficient matrices from all separate analyses in case 
         # we need to replicate or compare results from this condition analysis.
         CoefMatrices <- SGP_object@SGP[["Coefficient_Matrices"]]
         save(CoefMatrices, file = paste0(folder_name, "_CoefMatrices.rda"))
-        
+
         # Re-name and remove the SGP variables as necessary
         setnames(
             x = SGP_object@Data,

@@ -10,10 +10,10 @@ if (!dir.exists("./Data/Phase_4-Comparison_Metrics/Plots"))
 ##  Required packages and utility function
 require(data.table)
 
-`completeDT` =
+completeDT =
     function(DT, cols, defs = NULL) {
-        mDT = do.call(data.table::CJ, c(DT[, ..cols], list(unique = TRUE)))
-        res = DT[mDT, on = names(mDT)]
+        mDT <- do.call(data.table::CJ, c(DT[, ..cols], list(unique = TRUE)))
+        res <- DT[mDT, on = names(mDT)]
         if (length(defs)) {
             res[,
             names(defs) := Map(replace, .SD, lapply(.SD, is.na), defs),
@@ -24,13 +24,16 @@ require(data.table)
     }
 
 ##  Load Student Growth Data
-if (!exists("Georgia_Data_LONG")) {
+if (!exists("Illinois_Data_LONG")) {
   source("../functions/freadZIP.R")
-  Georgia_Data_LONG <-
+  Illinois_Data_LONG <-
     freadZIP(
-      "Data/Student_Growth/Student_LongTestData_Georgia_2016-2019_AVI.csv.zip"
-    )
+      "Data/Phase_2-Student_Growth/Student_LongTestData_Illinois_2016-2019_AVI.csv.zip"
+    )[,
+        GRADE := as.character(GRADE)
+    ]
 }
+Illinois_Data_LONG[is.na(Race) | Race == "", Race := "Other"]
 
 #' ##  Additional variables for aggregated results
 #'
@@ -40,18 +43,18 @@ if (!exists("Georgia_Data_LONG")) {
 #'
 #+ res-agr-prof, echo = TRUE, purl = TRUE
 ##    Proficient/Not (1/0) binary indicator.
-Georgia_Data_LONG[,
+Illinois_Data_LONG[,
   PROFICIENCY := fcase(
-    ACHIEVEMENT_LEVEL %in% c("Beginning Learner", "Developing Learner"), 0L,
-    ACHIEVEMENT_LEVEL %in% c("Proficient Learner", "Distinguished Learner"), 1L
+    ACHIEVEMENT_LEVEL %in% c("Level 1", "Level 2", "Level 3"), 0L,
+    ACHIEVEMENT_LEVEL %in% c("Level 4", "Level 5"), 1L
   )
 ]
 
 ##  Get complete SchoolID lists
 schoolIDs.18 <-
-  unique(Georgia_Data_LONG[YEAR == 2018 & !is.na(SCALE_SCORE), SchoolID])
+  unique(Illinois_Data_LONG[YEAR == 2018 & !is.na(SCALE_SCORE), SchoolID])
 schoolIDs.19 <-
-  unique(Georgia_Data_LONG[YEAR == 2019 & !is.na(SCALE_SCORE), SchoolID])
+  unique(Illinois_Data_LONG[YEAR == 2019 & !is.na(SCALE_SCORE), SchoolID])
 
 
 #  Schools and Student Groups with Summative Ratings
@@ -70,6 +73,7 @@ ratings_percentages <- data.table()
 
 for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
   for (yr in 2018:2019) {
+    if (yr == 2018 && cond == "1a") next
     cnd.nm <-
       ifelse(
         cond %in% c("2", "3"),
@@ -82,7 +86,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
           file =
             paste0(
                 "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
-                cnd.nm, "_Min", min.n, "_Georgia_", yr, "_AVI.csv"
+                cnd.nm, "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
             )
         )
       excluded_schools <-
@@ -142,7 +146,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
 setcolorder(
     ratings_percentages,
     c("Sampling", "Min_N", "Year", "All", "EconDis", "EL", "SWD",
-      "Asian", "Black", "Hispanic", "Multiracial", "White") # , "Native American"
+      "Asian", "Black", "Hispanic", "HWPI", "Multi", "Native", "White")
 )
 
 setnames(
@@ -170,7 +174,7 @@ setnames(
 #   e. Frequency and percentage distributions of the Achievement_Level variable
 #      (i.e., N_Missing_PL1, N_Missing_PL2, etc.)
 
-setkey(Georgia_Data_LONG, CONTENT_AREA, GRADE)
+setkey(Illinois_Data_LONG, CONTENT_AREA, GRADE)
 
 freq_pct_race <-
 freq_pct_misc <-
@@ -180,7 +184,7 @@ freq_pct_achlev <- data.table()
 for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
   grade_subject_lookup <-
     data.table(
-        Georgia_Data_LONG[
+        Illinois_Data_LONG[
             !is.na(get(paste0("SGP_Cnd_", cond))),
             .(CONTENT_AREA, GRADE)
         ] |> unique() |> setkey(CONTENT_AREA, GRADE)
@@ -193,7 +197,7 @@ for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
         cond
       )
     tmp_missing <-
-      Georgia_Data_LONG[grade_subject_lookup][
+      Illinois_Data_LONG[grade_subject_lookup][
         YEAR == yr &
         is.na(get(paste0("SGP_Cnd_", cond))),
       ][,
@@ -358,7 +362,7 @@ missing_freq_pct_table <-
 
 
 ###   5.a - 5.e "Full" student frequencies and percentages
-setkey(Georgia_Data_LONG, CONTENT_AREA, GRADE)
+setkey(Illinois_Data_LONG, CONTENT_AREA, GRADE)
 
 freq_pct_race <-
 freq_pct_misc <-
@@ -368,7 +372,7 @@ freq_pct_achlev <- data.table()
 for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
   grade_subject_lookup <-
     data.table(
-        Georgia_Data_LONG[
+        Illinois_Data_LONG[
             !is.na(get(paste0("SGP_Cnd_", cond))),# &
             # GRADE != 3,
             .(CONTENT_AREA, GRADE)
@@ -382,7 +386,7 @@ for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
         cond
       )
     tmp_full <-
-      Georgia_Data_LONG[grade_subject_lookup][
+      Illinois_Data_LONG[grade_subject_lookup][
         YEAR == yr
       ][,
         GRADE := as.character(GRADE)
@@ -538,14 +542,14 @@ var.order <-
     )
 
 freq_pct_table |>
-setcolorder(
-  c(1:2,
-    lapply(
-      var.order,
-      \(f) grep(f, names(freq_pct_table))
-    ) |> unlist()
+  setcolorder(
+    c(1:2,
+      lapply(
+        var.order,
+        \(f) grep(f, names(freq_pct_table))
+      ) |> unlist()
+    )
   )
-)
 
 
 ##  Schools with No Summative Ratings
@@ -576,19 +580,20 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
     grade_subject_lookup <-
       data.table(
         CONTENT_AREA = c(rep("ELA", 2), rep("MATHEMATICS", 2)),
-        GRADE = c(5, 8,  5, 8),
+        GRADE = c("5", "8",  "5", "8"),
         key = c("CONTENT_AREA", "GRADE")
       )
   } else {
     grade_subject_lookup <-
       data.table(
-          Georgia_Data_LONG[
+          Illinois_Data_LONG[
             !is.na(get(paste0("SGP_Cnd_", cond))),
             .(CONTENT_AREA, GRADE)
           ] |> unique() |> setkey(CONTENT_AREA, GRADE)
       )
   }
   for (yr in 2018:2019) {
+    if (yr == 2018 && cond == "1a") next
     cnd.nm <-
       ifelse(
         cond %in% c("2", "3"),
@@ -601,7 +606,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
         fread(
             file = paste0(
                 "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
-                cnd.nm, "_Min", min.n, "_Georgia_", yr, "_AVI.csv"
+                cnd.nm, "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
             )
         )
       excluded.schools <-
@@ -616,7 +621,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
         }
     # 8.
       tmp_excl <-
-        Georgia_Data_LONG[grade_subject_lookup][
+        Illinois_Data_LONG[grade_subject_lookup][
             YEAR == yr &
             SchoolID %in% excluded.schools
         ][,
@@ -646,10 +651,12 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
           names(excl_stu_race),
           paste0("%_", names(excl_stu_race), "_NoSum")
       )
-    # 9.c  
+    # 9.c
       excl_stu_ed <-
           tmp_excl[,
-              .(`%_EconDis_NoSum` = round((sum(EconDis == "EconDis: Yes")/.N), 3)),
+              .(`%_EconDis_NoSum` =
+                  round((sum(EconDis == "EconDis: Yes")/.N), 3)
+              ),
           ]
       excl_stu_swd <-
           tmp_excl[,
@@ -699,7 +706,9 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
       } else {
         excl_stu_msgp <-
           tmp_excl[,
-              .(MSGP = round(mean(get(paste0("SGP_Cnd_", cond)), na.rm = TRUE), 1)),
+              .(MSGP = round(
+                mean(get(paste0("SGP_Cnd_", cond)), na.rm = TRUE), 1)
+              ),
               keyby = c("CONTENT_AREA", "GRADE"),
           ][,
               CONTENT_AREA := gsub("MATHEMATICS", "Math", CONTENT_AREA)
@@ -763,7 +772,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
 
     # 10
       tmp_full <-
-          Georgia_Data_LONG[grade_subject_lookup][YEAR == yr][,
+          Illinois_Data_LONG[grade_subject_lookup][YEAR == yr][,
               GRADE := as.character(GRADE)
           ]
     # 10.a
@@ -788,10 +797,12 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
           names(full_stu_race),
           paste0("%_", names(full_stu_race), "_Full")
       )
-    # 10.c  
+    # 10.c
       full_stu_ed <-
           tmp_full[,
-              .(`%_EconDis_Full` = round((sum(EconDis == "EconDis: Yes")/.N), 3)),
+              .(`%_EconDis_Full` =
+                  round((sum(EconDis == "EconDis: Yes")/.N), 3)
+              ),
           ]
       full_stu_swd <-
           tmp_full[,
@@ -841,7 +852,9 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
       } else {
         full_stu_msgp <-
           tmp_full[,
-              .(MSGP = round(mean(get(paste0("SGP_Cnd_", cond)), na.rm = TRUE), 1)),
+              .(MSGP = round(
+                  mean(get(paste0("SGP_Cnd_", cond)), na.rm = TRUE), 1)
+              ),
               keyby = c("CONTENT_AREA", "GRADE"),
           ][,
               CONTENT_AREA := gsub("MATHEMATICS", "Math", CONTENT_AREA)
@@ -880,7 +893,6 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
             full_stu_achlev, full_stu_mss, full_stu_msgp, full_stu_cr
         )[,
             Sampling := cnd.nm
-        # ][, Min_N := min.n
         ][, Year := yr
         ][]
       full_ratings <-
@@ -888,7 +900,6 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
               list(full_ratings, tmp_full_ratings),
               fill = TRUE
           )
-    # }
   }
 }
 
@@ -897,9 +908,8 @@ missing_ratings_table <-
     merge(excl_ratings, full_ratings, by = c("Sampling", "Year"))
 
 var.order <-
-    c("Sampling", "Min_N", "Year", # "_EconDis$", "_SWD$", "_EL$",
-      # gsub("N_Full_|%_Full_|_Full", "", names(full_ratings)) |> unique(),
-      gsub("N_Full_|%_Full_|AvgSS_|AvgSGP_|_Full", "", # %_Proficient_ - only CA,
+    c("Sampling", "Min_N", "Year",
+      gsub("N_Full_|%_Full_|AvgSS_|AvgSGP_|_Full", "",
             names(full_ratings))
     ) |> unique()
 
@@ -922,7 +932,7 @@ school_level_ratings <- data.table()
 for (cond in c("0", "1b", "1c", "2", "3", "4")) { # No "1a",
   grade_subject_lookup <-
     data.table(
-        Georgia_Data_LONG[
+        Illinois_Data_LONG[
           !is.na(get(paste0("SGP_Cnd_", cond))),
           .(CONTENT_AREA, GRADE)
         ] |> unique() |> setkey(CONTENT_AREA, GRADE)
@@ -936,7 +946,7 @@ for (cond in c("0", "1b", "1c", "2", "3", "4")) { # No "1a",
       )
     # Get data first here
     tmp_full <-
-        Georgia_Data_LONG[grade_subject_lookup][YEAR == yr][,
+        Illinois_Data_LONG[grade_subject_lookup][YEAR == yr][,
             GRADE := as.character(GRADE)
         ]
 
@@ -1074,8 +1084,8 @@ for (cond in c("0", "1b", "1c", "2", "3", "4")) { # No "1a",
       acct_ratings <-
         fread(
           file = paste0(
-              "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
-              cnd.nm, "_Min", min.n, "_Georgia_", yr, "_AVI.csv"
+            "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
+            cnd.nm, "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
           )
         )
       all_sumscore <- acct_ratings[Group == "All", .(SchoolID, SumScore)]
@@ -1086,6 +1096,7 @@ for (cond in c("0", "1b", "1c", "2", "3", "4")) { # No "1a",
           paste0("Min_", min.n, "_SumScore")
       )
     }
+
   #  Combine (long) a) complete results with b) other conditions
     school_level_ratings <-
         rbindlist(
@@ -1102,8 +1113,9 @@ var.order <-
     c("Sampling", "Year",  "SchoolID", "Total_N",
       paste0("Min_", c(10, 30, 50), "_Rating"),
       paste0("%_", c("EconDis", "EL", "SWD",
-         "Asian", "Black", "Hispanic",
-         "Native American", "Multiracial", "White")),
+                     "Asian", "Black", "Hispanic", "HWPI",
+                     "Multi", "Native", "White")
+      ),
       "%_Proficient_ELA", "%_Proficient_Math",
       paste0("G", c(4:8, 4:8), "_", c("ELA", "Math"))|> sort()
     ) |> unique()
@@ -1146,6 +1158,7 @@ min.n.indc.dist <- data.table()
 
 for (yr in 2018:2019) {
   for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
+    if (yr == 2018 && cond == "1a") next
     cnd.nm <-
       ifelse(
         cond %in% c("2", "3"),
@@ -1158,14 +1171,14 @@ for (yr in 2018:2019) {
           fread(
             file = paste0(
               "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_0",
-              "_Min", min.n, "_Georgia_", yr, "_AVI.csv"
+              "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
             )
           )
         focl_rates <-
           fread(
             file = paste0(
               "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
-              cnd.nm, "_Min", min.n, "_Georgia_", yr, "_AVI.csv"
+              cnd.nm, "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
             )
           )
       # 12 a.
@@ -1213,7 +1226,8 @@ for (yr in 2018:2019) {
 
         cond.comp.tmp <-
           data.table(
-            Comparison = paste0("Conditions 0 vs. ", cnd.nm, ", MinN = ", min.n),
+            Comparison =
+              paste0("Conditions 0 vs. ", cnd.nm, ", MinN = ", min.n),
             Year = yr,
             N_Schools    = sum(n_tbl),
             # N_Match      = sum(diag(n_tbl)),
@@ -1249,7 +1263,7 @@ for (yr in 2018:2019) {
           )
         acad.indc.dist <-
           rbindlist(list(acad.indc.dist, acad.indc.tmp), fill = TRUE)
-        
+
         grDevices::pdf(
           file =
             file.path(
@@ -1307,14 +1321,14 @@ for (yr in 2018:2019) {
         fread(
           file = paste0(
             "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
-            cnd.nm, "_Min10", "_Georgia_", yr, "_AVI.csv"
+            cnd.nm, "_Min10", "_Illinois_", yr, "_AVI.csv"
           )
         )
       focl_rates <-
         fread(
           file = paste0(
             "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
-            cnd.nm, "_Min", min.n, "_Georgia_", yr, "_AVI.csv"
+            cnd.nm, "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
           )
         )
       # 12 b.
@@ -1334,7 +1348,8 @@ for (yr in 2018:2019) {
       # 14.
       min.n.comp.tmp <-
         data.table(
-          Comparison = paste0("MinN = 10 vs. MinN = ", min.n, ", Condition = ", cnd.nm),
+          Comparison =
+            paste0("MinN = 10 vs. MinN = ", min.n, ", Condition = ", cnd.nm),
           Year = yr,
           N_Schools    = sum(n_tbl),
           `%_Match`    = sum(diag(p_tbl)),
@@ -1359,7 +1374,8 @@ for (yr in 2018:2019) {
 
       min.n.comp.tmp <-
         data.table( # MinN = 10 vs. MinN = 30, Condition = 0
-          Comparison = paste0("MinN = 10 vs. MinN = ", min.n, ", Condition = ", cnd.nm),
+          Comparison =
+            paste0("MinN = 10 vs. MinN = ", min.n, ", Condition = ", cnd.nm),
           Year = yr,
           N_Schools    = sum(n_tbl),
           `%_Match`    = sum(diag(p_tbl)),
@@ -1405,9 +1421,8 @@ save(
     file = "./Data/Phase_4-Comparison_Metrics/phase_4_tables.Rdata"
 )
 
-setkey(school_level_ratings, SchoolID, Sampling, Year)
 fwrite(
-    x = school_level_ratings,
+    x = school_level_ratings[SchoolID != ""],
     file = "./Data/Phase_4-Comparison_Metrics/school_level_ratings_by_condition.csv"
 )
 
@@ -1428,7 +1443,7 @@ fwrite(
 #   * Correlations and RMSE for the academic achievement indicator scores,
 #     other academic indicator scores, and school summative ratings
 
-source("Phase_4-Metric_Bootstrap-Georgia.R")
+source("Phase_4-Metric_Bootstrap-Illinois.R")
 
 load("./Data/Phase_4-Metric_Bootstrap/Phase_4/Metric_Bootstrap_2018.rda")
 Metric_Bootstrap_2018 <- Metric_Bootstrap
@@ -1537,6 +1552,11 @@ dist.boot.table <-
 
 require(openxlsx)
 
+# ratings_percentages # 3
+# freq_pct_table # 6
+# missing_ratings_table # 11
+
+
 ## Styles for openxlsx
 hs1 <-
   createStyle(
@@ -1553,7 +1573,6 @@ smsc.sty <- createStyle(fgFill = "#A9FA9A")
 smsr.sty <- createStyle(fgFill = "#69FF69")
 
 prob.flag <- createStyle(fontColour = "#F51505")
-
 
 ##    create a workbook
 phase_4_wb <- createWorkbook(creator = NULL)

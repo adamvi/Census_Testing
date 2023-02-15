@@ -53,7 +53,8 @@ schoolAggrGator =
 cond1aAggrGator =
   function(
     data_table,
-    group = NULL
+    group = NULL,
+    years = c(2018, 2019)
   ) {
   smry_cnd_1a <-
     data_table[
@@ -76,7 +77,7 @@ cond1aAggrGator =
 
   #  Subset the data for the two focus years:
   smry_cnd_1a <-
-      smry_cnd_1a[YEAR %in% c(2018, 2019)]
+      smry_cnd_1a[YEAR %in% years]
 
   smry_cnd_1a[,
       ZDiff := (MeanScore - MeanScore_LAG_1) / ((ScoreSD*N + ScoreSD_LAG_1*N_LAG_1)/(N + N_LAG_1))
