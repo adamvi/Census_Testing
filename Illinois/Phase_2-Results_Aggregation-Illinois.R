@@ -92,6 +92,11 @@ Illinois_Data_LONG[,
     ACHIEVEMENT_LEVEL %in% c("Level 1", "Level 2", "Level 3"), 0L,
     ACHIEVEMENT_LEVEL %in% c("Level 4", "Level 5"), 1L
   )
+][,
+  PROFICIENCY_C4 := fcase(
+    ACHIEVEMENT_LEVEL_Short %in% c("Level 1", "Level 2", "Level 3"), 0L,
+    ACHIEVEMENT_LEVEL_Short %in% c("Level 4", "Level 5"), 1L
+  )
 ]
 
 
@@ -191,7 +196,7 @@ school_aggregation_all_students <-
         )[, Condition := "3"],
         schoolAggrGator(
           data_table =
-            Illinois_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8)],
+            Illinois_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8],
           growth.var = "SGP_Cnd_4"
         )[, Condition := "4"]
       )
@@ -489,7 +494,7 @@ school_aggregation_student_demogs <-
             schoolAggrGator(
               data_table =
                 Illinois_Data_LONG[
-                  YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8), ],
+                  YEAR %in% c(2018, 2019) & GRADE %in% 3:8, ],
               growth.var = "SGP_Cnd_4",
               groups = c("SchoolID", "YEAR", "CONTENT_AREA", f)
             )[, Condition := "4"] |> setnames(f, "Group")

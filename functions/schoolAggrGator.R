@@ -6,6 +6,7 @@ schoolAggrGator =
   ) {
     aggr.names <-
       c("TotalN", "ProfN", "GrowthN", "MGP", "PctProf")
+    prof.var <- ifelse(grepl("Cnd_4", growth.var), "PROFICIENCY_C4", "PROFICIENCY")
         # "MeanScore", "GrowthZ", "StatusZ"
     frmla <-
       paste0(
@@ -15,10 +16,10 @@ schoolAggrGator =
     data_table[,
       # the list of summaries can be reduced/increased/amended as needed:
       .(TotalN = .N,
-        ProfN = sum(PROFICIENCY == 1L),
+        ProfN = sum(get(prof.var) == 1L),
         GrowthN = sum(!is.na(get(growth.var))),
         MGP = round(mean(get(growth.var), na.rm = TRUE), 3),
-        PctProf = round(mean(PROFICIENCY, na.rm = TRUE), 5)*100
+        PctProf = round(mean(get(prof.var), na.rm = TRUE), 5)*100
         # GrowthZ = round(mean(qnorm(get(growth.var)/100), na.rm = TRUE), 3),
         # MeanScore = round(mean(Z_SCORE, na.rm = TRUE), 2),
         # StatusZ = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3)

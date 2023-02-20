@@ -1,8 +1,11 @@
 
 calculate_SGPs =
     function(
-        sgp_data, config, condition, state_abbr = "GA", workers
+        sgp_data, config, condition, state.abbr = "GA", workers
     ){
+        # Ensure all states use Frisch-Newton estimator any time function is used
+        SGPstateData[[state.abbr]][["SGP_Configuration"]][["rq.method"]] <- "fn"
+
         # Create a folder "Condition_0" if it doesn't already exist
         folder_name <- paste0("./Condition_", condition)
         if (!dir.exists(folder_name)) dir.create(folder_name)
@@ -13,7 +16,7 @@ calculate_SGPs =
         SGP_object <-
             abcSGP(
                 sgp_object = sgp_data,
-                state = state_abbr,
+                state = state.abbr,
                 steps = c("prepareSGP", "analyzeSGP", "combineSGP"),
                 sgp.config = config,
                 sgp.percentiles = TRUE,

@@ -5,6 +5,9 @@ bootstrapCond0 =
         bootstrap.n = 100, coef_matrices = NULL, state_indicators,
         output.dir = "./Data/Phase_4-Metric_Bootstrap"
     ){
+        # Ensure all states use Frisch-Newton estimator any time function is used
+        SGPstateData[[state.abbr]][["SGP_Configuration"]][["rq.method"]] <- "fn"
+
         ##  Get original Cond 0, MinN 10 ratings table for Phase 4 comparisons step.
         refr_rates <-
             fread(
@@ -43,7 +46,7 @@ bootstrapCond0 =
                     sgp.projections.baseline = FALSE,
                     sgp.projections.lagged.baseline = FALSE,
                     sgp.use.my.coefficient.matrices =
-                        ifelse(is.null(coef_matrices), FALSE, TRUE), # Added
+                        if (is.null(coef_matrices)) NULL else TRUE, # Added
                     goodness.of.fit.print = FALSE,  #  Added
                     simulate.sgps = FALSE,
                     parallel.config = list(
@@ -155,7 +158,9 @@ bootstrapCond0 =
                     N_Schools    = sum(n_tbl),
                     `%_Match`    = sum(diag(p_tbl)),
                     `%_FalsePos` = p_tbl[2, 1],
-                    `%_FalseNeg` = p_tbl[1, 2]
+                    `%_FalseNeg` = p_tbl[1, 2],
+                    `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
+                    `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
                 )),
                 fill = TRUE
             )
@@ -181,7 +186,9 @@ bootstrapCond0 =
                     N_Schools    = sum(n_tbl),
                     `%_Match`    = sum(diag(p_tbl)),
                     `%_FalsePos` = p_tbl[2, 1],
-                    `%_FalseNeg` = p_tbl[1, 2]
+                    `%_FalseNeg` = p_tbl[1, 2],
+                    `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
+                    `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
                 )),
                 fill = TRUE
             )

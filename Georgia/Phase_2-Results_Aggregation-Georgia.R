@@ -16,11 +16,11 @@ if (!exists("Georgia_Data_LONG")) {
   source("../functions/freadZIP.R")
   Georgia_Data_LONG <-
     freadZIP(
-      "Data/Student_Growth/Student_LongTestData_Georgia_2016-2019_AVI.csv.zip"
+      "Data/Phase_2-Student_Growth/Student_LongTestData_Georgia_2016-2019_AVI.csv.zip"
     )
 }
 #  Create a Data subdirectory for school aggregated results
-if (!dir.exists("./Data/School_Summaries")) dir.create("./Data/School_Summaries")
+if (!dir.exists("./Data/Phase_2-School_Summaries")) dir.create("./Data/Phase_2-School_Summaries")
 
 #' #  Growth and Achievement Aggregations
 #'
@@ -91,7 +91,13 @@ Georgia_Data_LONG[,
     ACHIEVEMENT_LEVEL %in% c("Beginning Learner", "Developing Learner"), 0L,
     ACHIEVEMENT_LEVEL %in% c("Proficient Learner", "Distinguished Learner"), 1L
   )
+][,
+  PROFICIENCY_C4 := fcase(
+    ACHIEVEMENT_LEVEL_Short %in% c("Beginning Learner", "Developing Learner"), 0L,
+    ACHIEVEMENT_LEVEL_Short %in% c("Proficient Learner", "Distinguished Learner"), 1L
+  )
 ]
+
 # Georgia_Data_LONG[Race == "Pacific", Race := "Asian"]
 
 
@@ -191,7 +197,7 @@ school_aggregation_all_students <-
         )[, Condition := "3"],
         schoolAggrGator(
           data_table =
-            Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8)],
+            Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8],
           growth.var = "SGP_Cnd_4"
         )[, Condition := "4"]
       )
@@ -207,14 +213,14 @@ school_aggregation_all_students <-
 #' Here are two schools from the condition 0 table:
 #'
 #+ agg-cond-0-ex, echo = TRUE, purl = TRUE
-school_aggregation_all_students[
-    Condition == 0 & SchoolID == `SCHOOL-XYZ`, # rows to keep
-    c(key(school_aggregation_all_students)[-1],
-      grep("ELA", names(school_aggregation_all_students), value = TRUE)
-    ),  #  columns to keep
-    with = FALSE
-  ] |>
-    setkey(SchoolID) |> print()
+# school_aggregation_all_students[
+#     Condition == 0 & SchoolID == `SCHOOL-XYZ`, # rows to keep
+#     c(key(school_aggregation_all_students)[-1],
+#       grep("ELA", names(school_aggregation_all_students), value = TRUE)
+#     ),  #  columns to keep
+#     with = FALSE
+#   ] |>
+#     setkey(SchoolID) |> print()
 
 #' We can look at these tables in a number of ways to make sure we are getting
 #' what is expected.  A simply cross-tab by year shows that many schools do not
@@ -224,7 +230,7 @@ school_aggregation_all_students[
 table(school_aggregation_all_students[, .(Condition, YEAR), is.na(Math_MGP)])
 
 fwrite(school_aggregation_all_students,
-    file = "Data/School_Summaries/School_Condition_AllGrowth_AllStudents_Georgia_AllYears_AVI.csv"
+    file = "Data/Phase_2-School_Summaries/School_Condition_AllGrowth_AllStudents_Georgia_AllYears_AVI.csv"
 )
 
 #' ##  Achievement Improvement Aggregations
@@ -275,9 +281,9 @@ sch_summary_cnd_1a[,
 
 
 #' Here is our example school's improvement numbers
-sch_summary_cnd_1a[SchoolID == `SCHOOL-XYZ`,
-    c(key(sch_summary_cnd_1a)[-1], "ZDiff"), with = FALSE
-]
+# sch_summary_cnd_1a[SchoolID == `SCHOOL-XYZ`,
+#     c(key(sch_summary_cnd_1a)[-1], "ZDiff"), with = FALSE
+# ]
 
 
 #' One important factor to consider with the "school improvement" indicator is
@@ -383,10 +389,10 @@ sch_summary_cnd_1a[, Group := "All"]
 setcolorder(sch_summary_cnd_1a, c("YEAR", "SchoolID", "Group"))
 
 fwrite(sch_summary_cnd_1a[YEAR == 2018][, YEAR := NULL],
-    file = "Data/School_Summaries/School_Condition_1a_Georgia_2018_AVI.csv"
+    file = "Data/Phase_2-School_Summaries/School_Condition_1a_Georgia_2018_AVI.csv"
 )
 fwrite(sch_summary_cnd_1a[YEAR == 2019][, YEAR := NULL],
-    file = "Data/School_Summaries/School_Condition_1a_Georgia_2019_AVI.csv"
+    file = "Data/Phase_2-School_Summaries/School_Condition_1a_Georgia_2019_AVI.csv"
 )
 
 #' Note that the above code can be accomplished with the `cond1aAggrGator`
@@ -488,7 +494,7 @@ school_aggregation_student_demogs <-
             schoolAggrGator(
               data_table =
                 Georgia_Data_LONG[
-                  YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8), ],
+                  YEAR %in% c(2018, 2019) & GRADE %in% 3:8, ],
               growth.var = "SGP_Cnd_4",
               groups = c("SchoolID", "YEAR", "CONTENT_AREA", f)
             )[, Condition := "4"] |> setnames(f, "Group")
@@ -499,7 +505,7 @@ school_aggregation_student_demogs <-
       setcolorder("Condition")
 
 fwrite(school_aggregation_student_demogs,
-    file = "Data/School_Summaries/School_Condition_AllGrowth_Demographics_Georgia_AllYears_AVI.csv"
+    file = "Data/Phase_2-School_Summaries/School_Condition_AllGrowth_Demographics_Georgia_AllYears_AVI.csv"
 )
 
 
@@ -541,7 +547,7 @@ school_aggregation_all <-
 setkeyv(school_aggregation_all, c("Condition", "SchoolID", "YEAR"))
 
 fwrite(school_aggregation_all,
-    file = "Data/School_Summaries/School_Condition_AllGrowth_Demographics_Georgia_AllYears_AVI.csv"
+    file = "Data/Phase_2-School_Summaries/School_Condition_AllGrowth_Demographics_Georgia_AllYears_AVI.csv"
 )
 
 
@@ -559,7 +565,7 @@ school_aggregation_all[
   Condition := paste0(Condition, "_O")
 ]
 
-fprefix <- "./Data/School_Summaries/School_Condition_"
+fprefix <- "./Data/Phase_2-School_Summaries/School_Condition_"
 
 for (cond in c("0", "1a", "1b", "1c", "2_E", "2_O", "3_E", "3_O", "4")) {
   for (yr in 2018:2019) {
@@ -600,10 +606,10 @@ sch_summary_cnd_1a_all <-
     ]
 
 fwrite(sch_summary_cnd_1a_all[YEAR == 2018][, YEAR := NULL],
-    file = "Data/School_Summaries/School_Condition_1a_Georgia_2018_AVI.csv"
+    file = "Data/Phase_2-School_Summaries/School_Condition_1a_Georgia_2018_AVI.csv"
 )
 fwrite(sch_summary_cnd_1a_all[YEAR == 2019][, YEAR := NULL],
-    file = "Data/School_Summaries/School_Condition_1a_Georgia_2019_AVI.csv"
+    file = "Data/Phase_2-School_Summaries/School_Condition_1a_Georgia_2019_AVI.csv"
 )
 
 #' ##  Summary and notes

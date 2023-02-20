@@ -9,6 +9,7 @@ if (!dir.exists("./Data/Phase_4-Comparison_Metrics/Plots"))
 
 ##  Required packages and utility function
 require(data.table)
+require(ggplot2)
 
 `completeDT` =
     function(DT, cols, defs = NULL) {
@@ -24,13 +25,13 @@ require(data.table)
     }
 
 ##  Load Student Growth Data
-if (!exists("Georgia_Data_LONG")) {
-  source("../functions/freadZIP.R")
-  Georgia_Data_LONG <-
-    freadZIP(
-      "Data/Student_Growth/Student_LongTestData_Georgia_2016-2019_AVI.csv.zip"
-    )
-}
+source("../functions/freadZIP.R")
+Georgia_Data_LONG <-
+  freadZIP(
+    "Data/Phase_2-Student_Growth/Student_LongTestData_Georgia_2016-2019_AVI.csv.zip"
+  )[,
+      GRADE := as.character(GRADE)
+  ]
 
 #' ##  Additional variables for aggregated results
 #'
@@ -44,6 +45,11 @@ Georgia_Data_LONG[,
   PROFICIENCY := fcase(
     ACHIEVEMENT_LEVEL %in% c("Beginning Learner", "Developing Learner"), 0L,
     ACHIEVEMENT_LEVEL %in% c("Proficient Learner", "Distinguished Learner"), 1L
+  )
+][,
+  PROFICIENCY_C4 := fcase(
+    ACHIEVEMENT_LEVEL_Short %in% c("Beginning Learner", "Developing Learner"), 0L,
+    ACHIEVEMENT_LEVEL_Short %in% c("Proficient Learner", "Distinguished Learner"), 1L
   )
 ]
 
@@ -69,6 +75,7 @@ schoolIDs.19 <-
 ratings_percentages <- data.table()
 
 for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
+  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
   for (yr in 2018:2019) {
     cnd.nm <-
       ifelse(
@@ -178,6 +185,7 @@ freq_pct_gdsubj <-
 freq_pct_achlev <- data.table()
 
 for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
+  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
   grade_subject_lookup <-
     data.table(
         Georgia_Data_LONG[
@@ -366,6 +374,7 @@ freq_pct_gdsubj <-
 freq_pct_achlev <- data.table()
 
 for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
+  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
   grade_subject_lookup <-
     data.table(
         Georgia_Data_LONG[
@@ -572,11 +581,12 @@ excl_ratings <- data.table()
 full_ratings <- data.table()
 
 for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
+  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
   if (cond == "1a") {
     grade_subject_lookup <-
       data.table(
         CONTENT_AREA = c(rep("ELA", 2), rep("MATHEMATICS", 2)),
-        GRADE = c(5, 8,  5, 8),
+        GRADE = c("5", "8",  "5", "8"),
         key = c("CONTENT_AREA", "GRADE")
       )
   } else {
@@ -663,7 +673,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
     # 9.d
       excl_stu_achlev <-
           tmp_excl[,
-              .(PCT = round((sum(PROFICIENCY == 1)/.N), 3)),
+              .(PCT = round((sum(get(prof.var) == 1)/.N), 3)),
               keyby = "CONTENT_AREA"
           ] |>
               data.table::dcast(
@@ -805,7 +815,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
     # 10.d
       full_stu_achlev <-
           tmp_full[,
-              .(PCT = round((sum(PROFICIENCY == 1)/.N), 3)),
+              .(PCT = round((sum(get(prof.var) == 1)/.N), 3)),
               keyby = "CONTENT_AREA"
           ] |>
               data.table::dcast(
@@ -920,6 +930,7 @@ missing_ratings_table |>
 school_level_ratings <- data.table()
 
 for (cond in c("0", "1b", "1c", "2", "3", "4")) { # No "1a",
+  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
   grade_subject_lookup <-
     data.table(
         Georgia_Data_LONG[
@@ -986,7 +997,7 @@ for (cond in c("0", "1b", "1c", "2", "3", "4")) { # No "1a",
   # XI.d
     full_stu_achlev <-
         tmp_full[,
-            .(PCT = round((sum(PROFICIENCY == 1)/.N), 3)),
+            .(PCT = round((sum(get(prof.var) == 1)/.N), 3)),
             keyby = c("SchoolID", "CONTENT_AREA"),
         ] |>
             data.table::dcast(
@@ -1146,6 +1157,7 @@ min.n.indc.dist <- data.table()
 
 for (yr in 2018:2019) {
   for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
+    prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
     cnd.nm <-
       ifelse(
         cond %in% c("2", "3"),
@@ -1193,7 +1205,9 @@ for (yr in 2018:2019) {
             # N_FalsePos   = n_tbl[2, 1],
             `%_FalsePos` = p_tbl[2, 1],
             # N_FalseNeg   = n_tbl[1, 2],
-            `%_FalseNeg` = p_tbl[1, 2]
+            `%_FalseNeg` = p_tbl[1, 2],
+            `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
+            `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
           )
         cond.comp.csi <-
           rbindlist(list(cond.comp.csi, cond.comp.tmp), fill = TRUE)
@@ -1216,12 +1230,11 @@ for (yr in 2018:2019) {
             Comparison = paste0("Conditions 0 vs. ", cnd.nm, ", MinN = ", min.n),
             Year = yr,
             N_Schools    = sum(n_tbl),
-            # N_Match      = sum(diag(n_tbl)),
             `%_Match`    = sum(diag(p_tbl)),
-            # N_FalsePos   = n_tbl[2, 1],
             `%_FalsePos` = p_tbl[2, 1],
-            # N_FalseNeg   = n_tbl[1, 2],
-            `%_FalseNeg` = p_tbl[1, 2]
+            `%_FalseNeg` = p_tbl[1, 2],
+            `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
+            `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
           )
         cond.comp.atsi <-
           rbindlist(list(cond.comp.atsi, cond.comp.tmp), fill = TRUE)
@@ -1249,7 +1262,100 @@ for (yr in 2018:2019) {
           )
         acad.indc.dist <-
           rbindlist(list(acad.indc.dist, acad.indc.tmp), fill = TRUE)
-        
+
+        # Scatter and "conditional difference" plots
+        ach.scat <-
+          ggplot(tmp_data, aes(x = ACH_Z.x, y = ACH_Z.y)) +
+          theme_bw() +
+          geom_hex(bins = 50, show.legend = FALSE) +
+          xlim(c(-3, 3)) +
+          ylim(c(-3, 3)) +
+          scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+          geom_smooth(method = "gam", se = FALSE, color = "red") +
+          labs(
+            x = paste("Achievement Z - Condition 0, Min N =", min.n),
+            y = paste("Achievement Z - Condition", cnd.nm, ", Min N =", min.n)
+          ) +
+          ggtitle("Focus vs Reference Condition") +
+          theme(plot.title = element_text(hjust = 0.5, size = 14))
+        ach.cond <-
+          ggplot(tmp_data, aes(x = ACH_Z.x, y = (ACH_Z.x - ACH_Z.y))) +
+          theme_bw() +
+          geom_hex(bins = 50, show.legend = FALSE) +
+          xlim(c(-3, 3)) +
+          ylim(c(-1.5, 1.5)) +
+          scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+          geom_smooth(method = "gam", se = FALSE, color = "red") +
+          labs(
+            x = paste("Achievement Z - Condition 0, Min N =", min.n),
+            y = paste("Achievement Z Conditional Difference", "( 0 -", cnd.nm, ")")
+          ) +
+          ggtitle("Conditional Difference") +
+          theme(plot.title = element_text(hjust = 0.5, size = 14))
+
+        oth.scat <-
+          ggplot(tmp_data, aes(x = Other_Z.x, y = Other_Z.y)) +
+          theme_bw() +
+          geom_hex(bins = 50, show.legend = FALSE) +
+          xlim(c(-3, 3)) +
+          ylim(c(-3, 3)) +
+          scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+          geom_smooth(method = "gam", se = FALSE, color = "red") +
+          labs(
+            x = paste(
+              ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
+              "Z - Condition 0, Min N =", min.n
+            ),
+            y = paste(
+              ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
+              "Z - Condition", cnd.nm, ", Min N =", min.n
+            )
+          )
+        oth.cond <-
+          ggplot(tmp_data, aes(x = Other_Z.x, y = (Other_Z.x - Other_Z.y))) +
+          theme_bw() +
+          geom_hex(bins = 50, show.legend = FALSE) +
+          xlim(c(-3, 3)) +
+          ylim(c(-1.5, 1.5)) +
+          scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+          geom_smooth(method = "gam", se = FALSE, color = "red") +
+          labs(
+            x = paste(
+              ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
+              "Z - Condition 0, Min N =", min.n
+            ),
+            y = paste(
+              ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
+              "Z Conditional Difference", "( 0 -", cnd.nm, ")"
+            )
+          )
+
+        sumsc.scat <-
+          ggplot(tmp_data, aes(x = SumScore.x, y = SumScore.y)) +
+          theme_bw() +
+          geom_hex(bins = 50, show.legend = FALSE) +
+          xlim(c(-3, 3)) +
+          ylim(c(-3, 3)) +
+          scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+          geom_smooth(method = "gam", se = FALSE, color = "red") +
+          labs(
+            x = paste("Sum Score Z - Condition 0, Min N =", min.n),
+            y = paste("Sum Score Z - Condition", cnd.nm, ", Min N =", min.n)
+          )
+        sumsc.cond <-
+          ggplot(tmp_data, aes(x = SumScore.x, y = (SumScore.x - SumScore.y))) +
+          theme_bw() +
+          geom_hex(bins = 50, show.legend = FALSE) +
+          xlim(c(-3, 3)) +
+          ylim(c(-1.5, 1.5)) +
+          scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+          geom_smooth(method = "gam", se = FALSE, color = "red") +
+          labs(
+            x = paste("Sum Score Z - Condition 0, Min N =", min.n),
+            y = paste("Sum Score Z Conditional Difference", "( 0 -", cnd.nm, ")")
+          )
+
+
         grDevices::pdf(
           file =
             file.path(
@@ -1258,46 +1364,7 @@ for (yr in 2018:2019) {
             ),
           width = 8, height = 11
         )
-        par(mfrow = c(3, 2))
-        plot(tmp_data[, .(ACH_Z.x, ACH_Z.y)],
-             xlab = paste("Achievement Z - Condition 0, Min N =", min.n),
-             ylab = paste("Achievement Z - Condition", cnd.nm, ", Min N =", min.n)
-        )
-        plot(tmp_data[, .(ACH_Z.x, (ACH_Z.x - ACH_Z.y))],
-             xlab = paste("Achievement Z - Condition 0, Min N =", min.n),
-             ylab = paste("Achievement Z Conditional Difference", "( 0 -", cnd.nm, ")")
-        )
-
-        plot(tmp_data[, .(Other_Z.x, Other_Z.y)],
-             xlab = paste(
-              ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
-              "Z - Condition 0, Min N =", min.n
-            ),
-             ylab = paste(
-              ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
-              "Z - Condition", cnd.nm, ", Min N =", min.n
-            )
-        )
-        plot(tmp_data[, .(Other_Z.x, (Other_Z.x - Other_Z.y))],
-             xlab = paste(
-               ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
-              "Z - Condition 0, Min N =", min.n
-            ),
-             ylab = paste(
-              ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
-              "Z Conditional Difference", "( 0 -", cnd.nm, ")"
-            )
-        )
-
-        plot(tmp_data[, .(SumScore.x, SumScore.y)],
-             xlab = paste("Sum Score Z - Condition 0, Min N =", min.n),
-             ylab = paste("Sum Score Z - Condition", cnd.nm, ", Min N =", min.n)
-        )
-        plot(tmp_data[, .(SumScore.x, (SumScore.x - SumScore.y))],
-             xlab = paste("Sum Score Z - Condition 0, Min N =", min.n),
-             ylab = paste("Sum Score Z Conditional Difference", "( 0 -", cnd.nm, ")")
-        )
-
+        gridExtra::grid.arrange(ach.scat, ach.cond, oth.scat, oth.cond, sumsc.scat, sumsc.cond, ncol = 2)
         grDevices::dev.off()
       }
     }
@@ -1339,7 +1406,9 @@ for (yr in 2018:2019) {
           N_Schools    = sum(n_tbl),
           `%_Match`    = sum(diag(p_tbl)),
           `%_FalsePos` = p_tbl[2, 1],
-          `%_FalseNeg` = p_tbl[1, 2]
+          `%_FalseNeg` = p_tbl[1, 2],
+          `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
+          `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
         )
       min.n.comp.csi <-
         rbindlist(list(min.n.comp.csi, min.n.comp.tmp), fill = TRUE)
@@ -1364,7 +1433,9 @@ for (yr in 2018:2019) {
           N_Schools    = sum(n_tbl),
           `%_Match`    = sum(diag(p_tbl)),
           `%_FalsePos` = p_tbl[2, 1],
-          `%_FalseNeg` = p_tbl[1, 2]
+          `%_FalseNeg` = p_tbl[1, 2],
+          `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
+          `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
         )
       min.n.comp.atsi <-
         rbindlist(list(min.n.comp.atsi, min.n.comp.tmp), fill = TRUE)
@@ -1653,12 +1724,16 @@ setColWidths(phase_4_wb, tmp.sheet, cols = 1, widths = 32)
 addStyle(phase_4_wb, tmp.sheet, style = cond.sty,
          rows = 1:nrow(min.n.indc.dist)+1, cols = 1:2, gridExpand = TRUE
 )
-addStyle(phase_4_wb, tmp.sheet, style = achc.sty, rows = row.indx, cols = 3)
-addStyle(phase_4_wb, tmp.sheet, style = achr.sty, rows = row.indx, cols = 4)
-addStyle(phase_4_wb, tmp.sheet, style = othc.sty, rows = row.indx, cols = 5)
-addStyle(phase_4_wb, tmp.sheet, style = othr.sty, rows = row.indx, cols = 6)
-addStyle(phase_4_wb, tmp.sheet, style = smsc.sty, rows = row.indx, cols = 7)
-addStyle(phase_4_wb, tmp.sheet, style = smsr.sty, rows = row.indx, cols = 8)
+# addStyle(phase_4_wb, tmp.sheet, style = achc.sty, rows = row.indx, cols = 3)
+# addStyle(phase_4_wb, tmp.sheet, style = achr.sty, rows = row.indx, cols = 4)
+# addStyle(phase_4_wb, tmp.sheet, style = othc.sty, rows = row.indx, cols = 5)
+# addStyle(phase_4_wb, tmp.sheet, style = othr.sty, rows = row.indx, cols = 6)
+# addStyle(phase_4_wb, tmp.sheet, style = smsc.sty, rows = row.indx, cols = 7)
+# addStyle(phase_4_wb, tmp.sheet, style = smsr.sty, rows = row.indx, cols = 8)
+addStyle(phase_4_wb, tmp.sheet, style = achc.sty, rows = row.indx, cols = 3:4, gridExpand = TRUE)
+addStyle(phase_4_wb, tmp.sheet, style = othc.sty, rows = row.indx, cols = 5:6, gridExpand = TRUE)
+addStyle(phase_4_wb, tmp.sheet, style = smsc.sty, rows = row.indx, cols = 7:8, gridExpand = TRUE)
+
 cor.cols <- grep("_Correl", names(min.n.indc.dist))
 for (rtg.cor in cor.cols) {
   conditionalFormatting(

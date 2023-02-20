@@ -100,7 +100,8 @@ Georgia_SGP <-
       sgp_data = Georgia_Data_LONG,
       config = cohort.config.c0,
       condition = "0",
-      workers = list(TAUS = 22)
+      workers = list(PERCENTILES = 15)
+      # workers = list(TAUS = 15)
     )
 
 
@@ -170,7 +171,7 @@ Georgia_SGP <-
       sgp_data = Georgia_SGP,
       config = cohort.config.c1b,
       condition = "1b",
-      workers = list(TAUS = 22)
+      workers = list(PERCENTILES = 15)
     )
 
 
@@ -238,7 +239,7 @@ Georgia_SGP <-
       sgp_data = Georgia_SGP,
       config = cohort.config.c1c,
       condition = "1c",
-      workers = list(TAUS = 22)
+      workers = list(PERCENTILES = 15)
     )
 
 
@@ -303,7 +304,7 @@ Georgia_SGP <-
       sgp_data = Georgia_SGP,
       config = cohort.config.c2,
       condition = "2",
-      workers = list(TAUS = 22)
+      workers = list(PERCENTILES = 15)
     )
 
 
@@ -434,7 +435,7 @@ Georgia_SGP <-
       sgp_data = Georgia_SGP,
       config = cohort.config.c4,
       condition = "4",
-      workers = list(TAUS = 22)
+      workers = list(PERCENTILES = 15)
     )
 
 
@@ -445,8 +446,8 @@ Georgia_SGP <-
 #' dataset and conclude this portion of Phase 2.
 
 #+ data-analysis-save, echo = TRUE, purl = TRUE, eval = FALSE
-if (!dir.exists("Data/Student_Growth"))
-    dir.create("Data/Student_Growth", recursive = TRUE)
+if (!dir.exists("Data/Phase_2-Student_Growth"))
+    dir.create("Data/Phase_2-Student_Growth", recursive = TRUE)
 
 setnames(
     Georgia_SGP@Data,
@@ -459,8 +460,8 @@ setnames(
 )
 Georgia_Data_LONG <- copy(Georgia_SGP@Data)
 
-save("Georgia_Data_LONG", file = "Data/Student_Growth/Georgia_Data_LONG.rda")
+save("Georgia_Data_LONG", file = "Data/Phase_2-Student_Growth/Georgia_Data_LONG.rda")
 
-fname <- "Data/Student_Growth/Student_LongTestData_Georgia_2016-2019_AVI.csv"
+fname <- "Data/Phase_2-Student_Growth/Student_LongTestData_Georgia_2016-2019_AVI.csv"
 fwrite(Georgia_Data_LONG, file = fname)
 zip(zipfile = paste0(fname, ".zip"), files = fname, flags = "-mqj")

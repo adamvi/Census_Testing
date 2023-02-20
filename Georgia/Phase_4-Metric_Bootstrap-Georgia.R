@@ -1,14 +1,14 @@
 #+ phase-4, include = FALSE, purl = FALSE
 ###############################################################################
 ####                                                                       ####
-####          Bootstap 2018 and 2019 Condition 0 SGPs for Georgia          ####
+####         Bootstrap 2018 and 2019 Condition 0 SGPs for Georgia          ####
 ####                                                                       ####
 ###############################################################################
 
 #' # Phase 4 - Threshold for Comparison Metrics
 #'
 #' This section presents and explains the code used to conduct the comparison
-#' metric bootstaping method for constructing confidence intervals.
+#' metric bootstraping method for constructing confidence intervals.
 #'
 #' ## Load SGP package and Georgia data
 #'
@@ -35,7 +35,7 @@ Georgia_Data_LONG <-
       )
     ]
 
-load("./Condition_0/Condition_0_CoefMatrices.rda")
+# load("./Condition_0/Condition_0_CoefMatrices.rda")
 
 #  Load state-provided accountability data
 state_acct_data_18 <-
@@ -188,32 +188,30 @@ config.c0.2019 <-
       MATHEMATICS_2019.config
     )
 
-boot.workers <- list(PERCENTILES = 10)
+boot.workers <- list(PERCENTILES = 15)
 set.seed(4224)
 
 
-bootstrapCond0(
-    sgp_data = Georgia_Data_LONG,
-    config = config.c0.2018,
-    state.abbr = "GA",
-    state.name = "Georgia",
-    fyear = "2018",
-    workers = boot.workers,
-    bootstrap.n = 100,
-    coef_matrices = CoefMatrices,
-    state_indicators = state_acct_data_18
-)
+# bootstrapCond0(
+#     sgp_data = Georgia_Data_LONG,
+#     config = config.c0.2018,
+#     state.abbr = "GA",
+#     state.name = "Georgia",
+#     fyear = "2018",
+#     workers = boot.workers,
+#     bootstrap.n = 100,
+#     # coef_matrices = CoefMatrices,
+#     state_indicators = state_acct_data_18
+# )
 
-system.time(
-bootstrapCond0(
-    sgp_data = Georgia_Data_LONG,
-    config = config.c0.2019,
-    state.abbr = "GA",
-    state.name = "Georgia",
-    fyear = "2019",
-    workers = boot.workers,
-    bootstrap.n = 100,
-    coef_matrices = CoefMatrices,
-    state_indicators = state_acct_data_19
-)
-)
+# bootstrapCond0(
+#     sgp_data = Georgia_Data_LONG,
+#     config = config.c0.2019,
+#     state.abbr = "GA",
+#     state.name = "Georgia",
+#     fyear = "2019",
+#     workers = boot.workers,
+#     bootstrap.n = 100,
+#     # coef_matrices = CoefMatrices,
+#     state_indicators = state_acct_data_19
+# )

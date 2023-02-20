@@ -135,7 +135,7 @@ state_acct_data_19[
 #' 
 #+ phase3-ex, include = FALSE, echo = FALSE, purl = FALSE
 # sch_smry_0 <-
-#   fread("Data/School_Summaries/School_Condition_0_Georgia_2018_AVI.csv")
+#   fread("Data/Phase_2-School_Summaries/School_Condition_0_Georgia_2018_AVI.csv")
 
 # ###   Merge and Filter
 # ##    1. Merge
@@ -330,7 +330,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
     tmp_cnd_data <-
       fread(
         file =
-          paste0("./Data/School_Summaries/School_Condition_",
+          paste0("./Data/Phase_2-School_Summaries/School_Condition_",
                  cnd.nm, "_Georgia_", yr, "_AVI.csv"
           )
       )
@@ -384,7 +384,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
 #     cond_summary_table = sch_smry_0
 #   )
 
-# sts <- fread("Data/School_Summaries/School_Condition_0_Georgia_2019_AVI.csv")
+# sts <- fread("Data/Phase_2-School_Summaries/School_Condition_0_Georgia_2019_AVI.csv")
 # tst2 <-
 #   accountabilityModel(
 #     condition = "0",

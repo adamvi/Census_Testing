@@ -116,10 +116,7 @@ Illinois_SGP <-
         state_abbr = "IL",
         config = cohort.config.c0,
         condition = "0",
-        workers = list(
-              PERCENTILES = 15,
-              BASELINE_PERCENTILES = 15
-        )
+        workers = list(PERCENTILES = 15)
     )
 
 #+ cond-1b, include = FALSE, purl = FALSE
@@ -189,10 +186,7 @@ Illinois_SGP <-
         state_abbr = "IL",
         config = cohort.config.c1b,
         condition = "1b",
-        workers = list(
-              PERCENTILES = 15,
-              BASELINE_PERCENTILES = 15
-        )
+        workers = list(PERCENTILES = 15)
     )
 
 
@@ -261,10 +255,7 @@ Illinois_SGP <-
         state_abbr = "IL",
         config = cohort.config.c1c,
         condition = "1c",
-        workers = list(
-              PERCENTILES = 15,
-              BASELINE_PERCENTILES = 15
-        )
+        workers = list(PERCENTILES = 15)
     )
 
 
@@ -330,10 +321,7 @@ Illinois_SGP <-
         state_abbr = "IL",
         config = cohort.config.c2,
         condition = "2",
-        workers = list(
-              PERCENTILES = 15,
-              BASELINE_PERCENTILES = 15
-        )
+        workers = list(PERCENTILES = 15)
     )
 
 
@@ -465,10 +453,7 @@ Illinois_SGP <-
         state_abbr = "IL",
         config = cohort.config.c4,
         condition = "4",
-        workers = list(
-              PERCENTILES = 15,
-              BASELINE_PERCENTILES = 15
-        )
+        workers = list(PERCENTILES = 15)
     )
 
 

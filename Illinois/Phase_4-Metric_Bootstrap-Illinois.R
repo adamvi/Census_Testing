@@ -17,10 +17,10 @@
 #+ sgp-calc-pkg, echo = TRUE, purl = TRUE
 require(SGP)
 require(data.table)
+source("../functions/freadZIP.R")
 source("../functions/bootstrapCond0.R")
 source("../functions/schoolAggrGator.R")
 source("../functions/accountabilityModel.R")
-
 
 SGPstateData[["IL"]][["Achievement"]][["Knots_Boundaries"]] <-
     list(
@@ -39,36 +39,21 @@ SGPstateData[["IL"]][["Achievement"]][["Cutscores"]] <-
 
 
 #  Load cleaned, merged and formatted data and pre-calculated Condition 0 matrices
-if (!exists("Illinois_Data_LONG")) {
-    source("../functions/freadZIP.R")
-    Illinois_Data_LONG <-
-        freadZIP(
-        "Data/Phase_2-Student_Growth/Student_LongTestData_Illinois_2016-2019_AVI.csv.zip"
-        )[YEAR < 2020][,
-            GRADE := as.character(GRADE)
-        ][,
-            c("SEM", "SCALE_SCORE_Short", "ACHIEVEMENT_LEVEL_Short") := NULL
-        ][,
-            PROFICIENCY := fcase(
-                ACHIEVEMENT_LEVEL %in% c("Level 1", "Level 2", "Level 3"), 0L,
-                ACHIEVEMENT_LEVEL %in% c("Level 4", "Level 5"), 1L
-            )
-        ]
-} else {
-    Illinois_Data_LONG <-
-      Illinois_Data_LONG[YEAR < 2020][,
-            GRADE := as.character(GRADE)
-        ][,
-            c("SEM", "SCALE_SCORE_Short", "ACHIEVEMENT_LEVEL_Short") := NULL
-        ][,
-            PROFICIENCY := fcase(
-                ACHIEVEMENT_LEVEL %in% c("Level 1", "Level 2", "Level 3"), 0L,
-                ACHIEVEMENT_LEVEL %in% c("Level 4", "Level 5"), 1L
-            )
-        ]
-}
+Illinois_Data_LONG <-
+    freadZIP(
+    "Data/Phase_2-Student_Growth/Student_LongTestData_Illinois_2016-2019_AVI.csv.zip"
+    )[YEAR < 2020][,
+        GRADE := as.character(GRADE)
+    ][,
+        c("SEM", "SCALE_SCORE_Short", "ACHIEVEMENT_LEVEL_Short") := NULL
+    ][,
+        PROFICIENCY := fcase(
+            ACHIEVEMENT_LEVEL %in% c("Level 1", "Level 2", "Level 3"), 0L,
+            ACHIEVEMENT_LEVEL %in% c("Level 4", "Level 5"), 1L
+        )
+    ]
 
-load("./Condition_0/Condition_0_CoefMatrices.rda")
+# load("./Condition_0/Condition_0_CoefMatrices.rda")
 
 #  Load state-provided accountability data
 state_acct_data_18 <-
@@ -192,26 +177,26 @@ boot.workers <- list(PERCENTILES = 10)
 set.seed(4224)
 
 
-bootstrapCond0(
-    sgp_data = Illinois_Data_LONG,
-    config = config.c0.2018,
-    state.abbr = "IL",
-    state.name = "Illinois",
-    fyear = "2018",
-    workers = boot.workers,
-    bootstrap.n = 100,
-    coef_matrices = CoefMatrices,
-    state_indicators = state_acct_data_18
-)
+# bootstrapCond0(
+#     sgp_data = Illinois_Data_LONG,
+#     config = config.c0.2018,
+#     state.abbr = "IL",
+#     state.name = "Illinois",
+#     fyear = "2018",
+#     workers = boot.workers,
+#     bootstrap.n = 100,
+#     # coef_matrices = CoefMatrices,
+#     state_indicators = state_acct_data_18
+# )
 
-bootstrapCond0(
-    sgp_data = Illinois_Data_LONG,
-    config = config.c0.2019,
-    state.abbr = "IL",
-    state.name = "Illinois",
-    fyear = "2019",
-    workers = boot.workers,
-    bootstrap.n = 100,
-    coef_matrices = CoefMatrices,
-    state_indicators = state_acct_data_19
-)
+# bootstrapCond0(
+#     sgp_data = Illinois_Data_LONG,
+#     config = config.c0.2019,
+#     state.abbr = "IL",
+#     state.name = "Illinois",
+#     fyear = "2019",
+#     workers = boot.workers,
+#     bootstrap.n = 100,
+#     # coef_matrices = CoefMatrices,
+#     state_indicators = state_acct_data_19
+# )
