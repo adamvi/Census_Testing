@@ -1191,8 +1191,8 @@ for (yr in 2018:2019) {
               ],
               by = "SchoolID", all = TRUE
             )
-      # CSI - 13. & 14.
-        n_tbl <- table(tmp_data[, CSI.x, CSI.y], exclude = NULL)
+      # CSI - 14 a.
+        n_tbl <- table(tmp_data[, CSI.x, CSI.y], useNA = "always")
         p_tbl <- prop.table(n_tbl) |> round(3)
 
         cond.comp.tmp <-
@@ -1200,19 +1200,41 @@ for (yr in 2018:2019) {
             Comparison = paste0("Conditions 0 vs. ", cnd.nm, ", MinN = ", min.n),
             Year = yr,
             N_Schools    = sum(n_tbl),
-            # N_Match      = sum(diag(n_tbl)),
-            `%_Match`    = sum(diag(p_tbl)),
-            # N_FalsePos   = n_tbl[2, 1],
-            `%_FalsePos` = p_tbl[2, 1],
-            # N_FalseNeg   = n_tbl[1, 2],
-            `%_FalseNeg` = p_tbl[1, 2],
-            `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
-            `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
+            #   Matches
+            `N 1 -> 1`  =  n_tbl[2, 2], # Match: Yes
+            `% 1 -> 1`  =  p_tbl[2, 2],
+            `N 0 -> 0`  =  n_tbl[1, 1], # Match: No
+            `% 0 -> 0`  =  p_tbl[1, 1],
+            `N NA -> NA` = n_tbl[3, 3], # Match: NA
+            `% NA -> NA` = p_tbl[3, 3],
+            #   Transitions
+            `N 0 -> 1`  =  n_tbl[2, 1], # FalsePos
+            `% 0 -> 1`  =  p_tbl[2, 1],
+            `N 1 -> 0`  =  n_tbl[1, 2], # FalseNeg
+            `% 1 -> 0`  =  p_tbl[1, 2],
+            #   Exclusion in focal condition
+            `N 1 -> NA` =  n_tbl[3, 2], # ExcludedPos
+            `% 1 -> NA` =  p_tbl[3, 2],
+            `N 0 -> NA` =  n_tbl[3, 1], # ExcludedNeg
+            `% 0 -> NA` =  p_tbl[3, 1],
+            #   # Excluded in reference condition
+            `N NA -> 1` =  n_tbl[2, 3], # AddedPos
+            `% NA -> 1` =  p_tbl[2, 3],
+            `N NA -> 0` =  n_tbl[1, 3], # AddedNeg
+            `% NA -> 0` =  p_tbl[1, 3]
+            # # N_Match      = sum(diag(n_tbl)),
+            # `%_Match`    = sum(diag(p_tbl)),
+            # # N_FalsePos   = n_tbl[2, 1],
+            # `%_FalsePos` = p_tbl[2, 1],
+            # # N_FalseNeg   = n_tbl[1, 2],
+            # `%_FalseNeg` = p_tbl[1, 2],
+            # `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
+            # `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
           )
         cond.comp.csi <-
           rbindlist(list(cond.comp.csi, cond.comp.tmp), fill = TRUE)
 
-      # ATSI - 15. & 16.
+      # ATSI - 16 a.
         n_tbl <-
           focl_rates[Group != "All" & !is.na(ATSI),
             .(ATSI_FOC = ifelse(any(ATSI == 1), 1, 0)),
@@ -1222,19 +1244,41 @@ for (yr in 2018:2019) {
             .(ATSI_REF = ifelse(any(ATSI == 1), 1, 0)),
             keyby = "SchoolID"
           ]][, SchoolID := NULL] |>
-            table(exclude = NULL)
+            table(useNA = "always")
         p_tbl <- prop.table(n_tbl) |> round(3)
 
         cond.comp.tmp <-
           data.table(
             Comparison = paste0("Conditions 0 vs. ", cnd.nm, ", MinN = ", min.n),
             Year = yr,
-            N_Schools    = sum(n_tbl),
-            `%_Match`    = sum(diag(p_tbl)),
-            `%_FalsePos` = p_tbl[2, 1],
-            `%_FalseNeg` = p_tbl[1, 2],
-            `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
-            `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
+            N_Schools   =  sum(n_tbl),
+            #   Matches
+            `N 1 -> 1`  =  n_tbl[2, 2], # Match: Yes
+            `% 1 -> 1`  =  p_tbl[2, 2],
+            `N 0 -> 0`  =  n_tbl[1, 1], # Match: No
+            `% 0 -> 0`  =  p_tbl[1, 1],
+            `N NA -> NA` = n_tbl[3, 3], # Match: NA
+            `% NA -> NA` = p_tbl[3, 3],
+            #   Transitions
+            `N 0 -> 1`  =  n_tbl[2, 1], # FalsePos
+            `% 0 -> 1`  =  p_tbl[2, 1],
+            `N 1 -> 0`  =  n_tbl[1, 2], # FalseNeg
+            `% 1 -> 0`  =  p_tbl[1, 2],
+            #   Exclusion in focal condition
+            `N 1 -> NA` =  n_tbl[3, 2], # ExcludedPos
+            `% 1 -> NA` =  p_tbl[3, 2],
+            `N 0 -> NA` =  n_tbl[3, 1], # ExcludedNeg
+            `% 0 -> NA` =  p_tbl[3, 1],
+            #   # Excluded in reference condition
+            `N NA -> 1` =  n_tbl[2, 3], # AddedPos
+            `% NA -> 1` =  p_tbl[2, 3],
+            `N NA -> 0` =  n_tbl[1, 3], # AddedNeg
+            `% NA -> 0` =  p_tbl[1, 3]
+            # `%_Match`    = sum(diag(p_tbl)),
+            # `%_FalsePos` = p_tbl[2, 1],
+            # `%_FalseNeg` = p_tbl[1, 2],
+            # `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
+            # `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
           )
         cond.comp.atsi <-
           rbindlist(list(cond.comp.atsi, cond.comp.tmp), fill = TRUE)
@@ -1355,7 +1399,6 @@ for (yr in 2018:2019) {
             y = paste("Sum Score Z Conditional Difference", "( 0 -", cnd.nm, ")")
           )
 
-
         grDevices::pdf(
           file =
             file.path(
@@ -1364,7 +1407,10 @@ for (yr in 2018:2019) {
             ),
           width = 8, height = 11
         )
-        gridExtra::grid.arrange(ach.scat, ach.cond, oth.scat, oth.cond, sumsc.scat, sumsc.cond, ncol = 2)
+        gridExtra::grid.arrange(
+          ach.scat, ach.cond, oth.scat, oth.cond, sumsc.scat, sumsc.cond,
+          ncol = 2
+        )
         grDevices::dev.off()
       }
     }
@@ -1395,25 +1441,42 @@ for (yr in 2018:2019) {
             ],
             by = "SchoolID", all = TRUE
           )    # CSI - 13. & 14.
-      n_tbl <- table(tmp_data[, CSI.x, CSI.y], exclude = NULL)
+      n_tbl <- table(tmp_data[, CSI.x, CSI.y], useNA = "always")
       p_tbl <- prop.table(n_tbl) |> round(3)
 
-      # 14.
+      # 14 b.
       min.n.comp.tmp <-
         data.table(
           Comparison = paste0("MinN = 10 vs. MinN = ", min.n, ", Condition = ", cnd.nm),
           Year = yr,
           N_Schools    = sum(n_tbl),
-          `%_Match`    = sum(diag(p_tbl)),
-          `%_FalsePos` = p_tbl[2, 1],
-          `%_FalseNeg` = p_tbl[1, 2],
-          `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
-          `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
+          #   Matches
+          `N 1 -> 1`  =  n_tbl[2, 2], # Match: Yes
+          `% 1 -> 1`  =  p_tbl[2, 2],
+          `N 0 -> 0`  =  n_tbl[1, 1], # Match: No
+          `% 0 -> 0`  =  p_tbl[1, 1],
+          `N NA -> NA` = n_tbl[3, 3], # Match: NA
+          `% NA -> NA` = p_tbl[3, 3],
+          #   Transitions
+          `N 0 -> 1`  =  n_tbl[2, 1], # FalsePos
+          `% 0 -> 1`  =  p_tbl[2, 1],
+          `N 1 -> 0`  =  n_tbl[1, 2], # FalseNeg
+          `% 1 -> 0`  =  p_tbl[1, 2],
+          #   Exclusion in focal condition
+          `N 1 -> NA` =  n_tbl[3, 2], # ExcludedPos
+          `% 1 -> NA` =  p_tbl[3, 2],
+          `N 0 -> NA` =  n_tbl[3, 1], # ExcludedNeg
+          `% 0 -> NA` =  p_tbl[3, 1],
+          #   # Excluded in reference condition
+          `N NA -> 1` =  n_tbl[2, 3], # AddedPos
+          `% NA -> 1` =  p_tbl[2, 3],
+          `N NA -> 0` =  n_tbl[1, 3], # AddedNeg
+          `% NA -> 0` =  p_tbl[1, 3]
         )
       min.n.comp.csi <-
         rbindlist(list(min.n.comp.csi, min.n.comp.tmp), fill = TRUE)
 
-    # ATSI - 15. & 16.
+    # ATSI - 16 b.
       n_tbl <-
         focl_rates[Group != "All" & !is.na(ATSI),
           .(ATSI_FOC = ifelse(any(ATSI == 1), 1, 0)),
@@ -1423,7 +1486,7 @@ for (yr in 2018:2019) {
           .(ATSI_REF = ifelse(any(ATSI == 1), 1, 0)),
           keyby = "SchoolID"
         ]][, SchoolID := NULL] |>
-          table(exclude = NULL)
+          table(useNA = "always")
       p_tbl <- prop.table(n_tbl) |> round(3)
 
       min.n.comp.tmp <-
@@ -1431,11 +1494,28 @@ for (yr in 2018:2019) {
           Comparison = paste0("MinN = 10 vs. MinN = ", min.n, ", Condition = ", cnd.nm),
           Year = yr,
           N_Schools    = sum(n_tbl),
-          `%_Match`    = sum(diag(p_tbl)),
-          `%_FalsePos` = p_tbl[2, 1],
-          `%_FalseNeg` = p_tbl[1, 2],
-          `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
-          `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
+          #   Matches
+          `N 1 -> 1`  =  n_tbl[2, 2], # Match: Yes
+          `% 1 -> 1`  =  p_tbl[2, 2],
+          `N 0 -> 0`  =  n_tbl[1, 1], # Match: No
+          `% 0 -> 0`  =  p_tbl[1, 1],
+          `N NA -> NA` = n_tbl[3, 3], # Match: NA
+          `% NA -> NA` = p_tbl[3, 3],
+          #   Transitions
+          `N 0 -> 1`  =  n_tbl[2, 1], # FalsePos
+          `% 0 -> 1`  =  p_tbl[2, 1],
+          `N 1 -> 0`  =  n_tbl[1, 2], # FalseNeg
+          `% 1 -> 0`  =  p_tbl[1, 2],
+          #   Exclusion in focal condition
+          `N 1 -> NA` =  n_tbl[3, 2], # ExcludedPos
+          `% 1 -> NA` =  p_tbl[3, 2],
+          `N 0 -> NA` =  n_tbl[3, 1], # ExcludedNeg
+          `% 0 -> NA` =  p_tbl[3, 1],
+          #   # Excluded in reference condition
+          `N NA -> 1` =  n_tbl[2, 3], # AddedPos
+          `% NA -> 1` =  p_tbl[2, 3],
+          `N NA -> 0` =  n_tbl[1, 3], # AddedNeg
+          `% NA -> 0` =  p_tbl[1, 3]
         )
       min.n.comp.atsi <-
         rbindlist(list(min.n.comp.atsi, min.n.comp.tmp), fill = TRUE)

@@ -130,7 +130,7 @@ Georgia_Data_LONG |> duplicated(by = key(Georgia_Data_LONG)) |> sum()
 # 767 duplicates - (((take the highest score if any exist)))
 # dupl <- duplicated(Georgia_Data_LONG, by = key(Georgia_Data_LONG))
 Georgia_Data_LONG[
-    which(duplicated(Georgia_Data_LONG, by=key(Georgia_Data_LONG)))-1,
+    which(duplicated(Georgia_Data_LONG, by = key(Georgia_Data_LONG))) - 1,
       VALID_CASE := "INVALID_CASE"
 ]
 table(Georgia_Data_LONG[, .(YEAR, VALID_CASE), GRADE])
@@ -194,6 +194,7 @@ setkey(Georgia_Data_LONG, CONTENT_AREA, GRADE)
 
 Georgia_Data_LONG <- sem_lookup[Georgia_Data_LONG]
 
+set.seed(2072)
 Georgia_Data_LONG[!is.na(SCALE_SCORE),
     SCALE_SCORE_Short :=
       rnorm(
