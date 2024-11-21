@@ -9,42 +9,48 @@ accountabilityModel =
     setkey(state_indicators, SchoolID, Group)
     setkey(cond_summary_table, SchoolID, Group)
 
-    tmp_mf_tbl <-
-      cond_summary_table[state_indicators][
-          !(is.na(ELA_PartRate) | is.na(Math_PartRate)) &
-          ELA_TotalN > min.n &    # 2.a
-          Math_TotalN > min.n     # 2.b
-      ]
-    if (toupper(condition) != "1A") {
+    if (toupper(condition) == "1A") {
+      tmp_mf_tbl <-
+        cond_summary_table[state_indicators][
+            !(is.na(ELA_PartRate) | is.na(Math_PartRate)) &
+            ELA_TotalN >= min.n &    # 2.a
+            Math_TotalN >= min.n     # 2.b
+        ]
+    } else {
+      tmp_mf_tbl <-
+        cond_summary_table[state_indicators]
       tmp_mf_tbl <-
         tmp_mf_tbl[
-            ELA_GrowthN > min.n & # 2.c.i
-            Math_GrowthN > min.n  # 2.c.ii
+          !(is.na(ELA_PartRate) | is.na(Math_PartRate)) &
+          ELA_TotalN >= min.n &   # 2.a
+          Math_TotalN >= min.n &  # 2.b
+          ELA_GrowthN >= min.n &  # 2.c.i
+          Math_GrowthN >= min.n   # 2.c.ii
         ]
     }
 
     ###   Compute Academic Achievement Indicator Scores
     tmp_mf_tbl[,
       ELA_ProfRate := ELA_ProfN / ELA_TotalN                     # 3.a
-    ][ELA_PartRate <= 95, 
-      ELA_ProfRate := ELA_ProfRate * ((ELA_PartRate/100)/0.95)   # 3.b
+    ][ELA_PartRate < 95,
+      ELA_ProfRate := ELA_ProfRate * (ELA_PartRate / 95)         # 3.b
     ][,
       Math_ProfRate := Math_ProfN / Math_TotalN                  # 4.a
-    ][Math_PartRate <= 95, 
-      Math_ProfRate := Math_ProfRate * ((ELA_PartRate/100)/0.95) # 4.b
+    ][Math_PartRate < 95,
+      Math_ProfRate := Math_ProfRate * (Math_PartRate / 95)      # 4.b
     ][,
       ACH_Score :=                                               # 5.a
-        ((ELA_ProfRate * ELA_TotalN) + (Math_ProfRate * Math_TotalN)) / 
-                         (ELA_TotalN + Math_TotalN)
+        ((ELA_ProfRate * ELA_TotalN) + (Math_TotalN * Math_ProfRate)) /
+                        (ELA_TotalN  +  Math_TotalN)
     ]
 
-    ###   Compute Other Academic Indicator Scores 
-    if (toupper(condition) == "1A") {   # 6.a
+    ###   Compute Other Academic Indicator Scores
+    if (toupper(condition) == "1A") {                            # 6.a
       tmp_mf_tbl[,
         Other_Score :=
           (ELA_Improve*ELA_TotalN + Math_Improve*Math_TotalN) / (ELA_TotalN + Math_TotalN)
       ]
-    } else {                            # 7.a
+    } else {                                                     # 7.a
       tmp_mf_tbl[,
         Other_Score :=
           (ELA_MGP*ELA_GrowthN + Math_MGP*Math_GrowthN) / (ELA_GrowthN + Math_GrowthN)
@@ -107,7 +113,7 @@ accountabilityModel =
     ]
     setkey(tmp_mf_tbl, Group)
     tmp_mf_tbl <- P5_Lookup[tmp_mf_tbl]
-    
+
     # 11.c - 13
     tmp_mf_tbl[,
       Low5Pct := ifelse(SumScore < P5, 1, 0)

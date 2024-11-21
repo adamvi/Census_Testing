@@ -24,6 +24,17 @@ completeDT =
         res[]
     }
 
+`getProf` =
+  function(cnd) {
+    switch(
+      cnd,
+      "PROFICIENCY",
+      "0v2" = "PROFICIENCY_C0v2",
+      "4" = "PROFICIENCY_C4",
+      "4v2" = "PROFICIENCY_C4v2"
+    )
+  }
+
 ##  Load Student Growth Data
 source("../functions/freadZIP.R")
 Illinois_Data_LONG <-
@@ -48,9 +59,19 @@ Illinois_Data_LONG[,
     ACHIEVEMENT_LEVEL %in% c("Level 4", "Level 5"), 1L
   )
 ][,
+  PROFICIENCY_C0v2 := fcase(
+    ACHIEVEMENT_LEVEL_v2 %in% c("Level 1", "Level 2", "Level 3"), 0L,
+    ACHIEVEMENT_LEVEL_v2 %in% c("Level 4", "Level 5"), 1L
+  )
+][,
   PROFICIENCY_C4 := fcase(
     ACHIEVEMENT_LEVEL_Short %in% c("Level 1", "Level 2", "Level 3"), 0L,
     ACHIEVEMENT_LEVEL_Short %in% c("Level 4", "Level 5"), 1L
+  )
+][,
+  PROFICIENCY_C4v2 := fcase(
+    ACHIEVEMENT_LEVEL_Short_v2 %in% c("Level 1", "Level 2", "Level 3"), 0L,
+    ACHIEVEMENT_LEVEL_Short_v2 %in% c("Level 4", "Level 5"), 1L
   )
 ]
 
@@ -75,8 +96,8 @@ schoolIDs.19 <-
 
 ratings_percentages <- data.table()
 
-for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
-  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
+for (cond in c("0", "0v2", "1a", "1b", "1c", "2", "3", "4", "4v2")) {
+  # Conditions 0/0v2/4/4v2 should all be the same
   for (yr in 2018:2019) {
     if (yr == 2018 && cond == "1a") next
     cnd.nm <-
@@ -90,8 +111,8 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
         fread(
           file =
             paste0(
-                "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
-                cnd.nm, "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
+              "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
+              cnd.nm, "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
             )
         )
       excluded_schools <-
@@ -186,15 +207,37 @@ freq_pct_misc <-
 freq_pct_gdsubj <-
 freq_pct_achlev <- data.table()
 
-for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
-  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
+for (cond in c("0", "0v2", "1b", "1c", "2", "3", "4", "4v2")) { # , "1a"
+  # Conditions 0/0v2/4/4v2 should all be the same
   grade_subject_lookup <-
-    data.table(
-        Illinois_Data_LONG[
-            !is.na(get(paste0("SGP_Cnd_", cond))),
-            .(CONTENT_AREA, GRADE)
-        ] |> unique() |> setkey(CONTENT_AREA, GRADE)
-    )
+    switch(cond,
+      data.table(
+        CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 6),
+        GRADE = as.character(3:8)
+      ),
+      "1a" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 2),
+          GRADE = c("5", "8",  "5", "8")
+        ),
+      "1b" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 4),
+          GRADE = c("3", "5", "6", "8")
+        ),
+      "1c" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 3),
+          GRADE = c("3", "5", "7", "4", "6", "8")
+        ),
+      "3" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 4),
+          GRADE = c("3", "5", "6", "8")
+        )
+    ) |>
+      setkey(CONTENT_AREA, GRADE)
+
   for (yr in 2018:2019) {
     cnd.nm <-
       ifelse(
@@ -219,10 +262,6 @@ for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
       ][,
           Sampling := cnd.nm
       ][,
-      #     Min_N := min.n
-      # ][,
-      #   `Study Condition` := paste0("Sampling = ", cnd.nm)
-      # ][,
         Year := yr
       ] |>
         data.table::dcast(
@@ -375,16 +414,37 @@ freq_pct_misc <-
 freq_pct_gdsubj <-
 freq_pct_achlev <- data.table()
 
-for (cond in c("0", "1b", "1c", "2", "3", "4")) { # , "1a"
-  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
+for (cond in c("0", "0v2", "1b", "1c", "2", "3", "4", "4v2")) { # , "1a"
+  # Conditions 0/0v2/4/4v2 should all be the same
   grade_subject_lookup <-
-    data.table(
-        Illinois_Data_LONG[
-            !is.na(get(paste0("SGP_Cnd_", cond))),# &
-            # GRADE != 3,
-            .(CONTENT_AREA, GRADE)
-        ] |> unique() |> setkey(CONTENT_AREA, GRADE)
-    )
+    switch(cond,
+      data.table(
+        CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 6),
+        GRADE = as.character(3:8)
+      ),
+      "1a" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 2),
+          GRADE = c("5", "8",  "5", "8")
+        ),
+      "1b" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 4),
+          GRADE = c("3", "5", "6", "8")
+        ),
+      "1c" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 3),
+          GRADE = c("3", "5", "7", "4", "6", "8")
+        ),
+      "3" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 4),
+          GRADE = c("3", "5", "6", "8")
+        )
+    ) |>
+      setkey(CONTENT_AREA, GRADE)
+
   for (yr in 2018:2019) {
     cnd.nm <-
       ifelse(
@@ -541,12 +601,12 @@ freq_pct_table <-
   missing_freq_pct_table[full_freq_pct_table]
 
 var.order <-
-    c("_EconDis$", "_SWD$", "_EL$",
-      gsub("N_Full_|%_Full_", "", names(freq_pct_race)[-(1:3)]) |> unique(),
-      gsub("N_Full_|%_Full_|AvgSS_Full_", "",
-            names(freq_pct_gdsubj)[-(1:3)]) |> unique(),
-      "_PL1$", "_PL2$", "_PL3$", "_PL4$"
-    )
+  c("_EconDis$", "_SWD$", "_EL$",
+    gsub("N_Full_|%_Full_", "", names(freq_pct_race)[-(1:3)]) |> unique(),
+    gsub("N_Full_|%_Full_|AvgSS_Full_", "",
+          names(freq_pct_gdsubj)[-(1:3)]) |> unique(),
+    "_PL1$", "_PL2$", "_PL3$", "_PL4$"
+  )
 
 freq_pct_table |>
   setcolorder(
@@ -582,24 +642,37 @@ freq_pct_table |>
 excl_ratings <- data.table()
 full_ratings <- data.table()
 
-for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
-  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
-  if (cond == "1a") {
-    grade_subject_lookup <-
+for (cond in c("0", "0v2", "1a", "1b", "1c", "2", "3", "4", "4v2")) {
+  # Conditions 0/0v2/4/4v2 should all be the same
+  grade_subject_lookup <-
+    switch(cond,
       data.table(
-        CONTENT_AREA = c(rep("ELA", 2), rep("MATHEMATICS", 2)),
-        GRADE = c("5", "8",  "5", "8"),
-        key = c("CONTENT_AREA", "GRADE")
-      )
-  } else {
-    grade_subject_lookup <-
-      data.table(
-          Illinois_Data_LONG[
-            !is.na(get(paste0("SGP_Cnd_", cond))),
-            .(CONTENT_AREA, GRADE)
-          ] |> unique() |> setkey(CONTENT_AREA, GRADE)
-      )
-  }
+        CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 6),
+        GRADE = as.character(3:8)
+      ),
+      "1a" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 2),
+          GRADE = c("5", "8",  "5", "8")
+        ),
+      "1b" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 4),
+          GRADE = c("3", "5", "6", "8")
+        ),
+      "1c" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 3),
+          GRADE = c("3", "5", "7", "4", "6", "8")
+        ),
+      "3" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 4),
+          GRADE = c("3", "5", "6", "8")
+        )
+    ) |>
+      setkey(CONTENT_AREA, GRADE)
+
   for (yr in 2018:2019) {
     if (yr == 2018 && cond == "1a") next
     cnd.nm <-
@@ -678,7 +751,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
     # 9.d
       excl_stu_achlev <-
           tmp_excl[,
-              .(PCT = round((sum(get(prof.var) == 1)/.N), 3)),
+              .(PCT = round((sum(get(getProf(cond)) == 1)/.N), 3)),
               keyby = "CONTENT_AREA"
           ] |>
               data.table::dcast(
@@ -824,7 +897,7 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
     # 10.d
       full_stu_achlev <-
           tmp_full[,
-              .(PCT = round((sum(get(prof.var) == 1)/.N), 3)),
+              .(PCT = round((sum(get(getProf(cond)) == 1)/.N), 3)),
               keyby = "CONTENT_AREA"
           ] |>
               data.table::dcast(
@@ -936,15 +1009,36 @@ missing_ratings_table |>
 
 school_level_ratings <- data.table()
 
-for (cond in c("0", "1b", "1c", "2", "3", "4")) { # No "1a",
-  prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
+for (cond in c("0", "0v2", "1b", "1c", "2", "3", "4", "4v2")) { # No "1a",
   grade_subject_lookup <-
-    data.table(
-        Illinois_Data_LONG[
-          !is.na(get(paste0("SGP_Cnd_", cond))),
-          .(CONTENT_AREA, GRADE)
-        ] |> unique() |> setkey(CONTENT_AREA, GRADE)
-    )
+    switch(cond,
+      data.table(
+        CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 6),
+        GRADE = as.character(3:8)
+      ),
+      "1a" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 2),
+          GRADE = c("5", "8",  "5", "8")
+        ),
+      "1b" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 4),
+          GRADE = c("3", "5", "6", "8")
+        ),
+      "1c" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 3),
+          GRADE = c("3", "5", "7", "4", "6", "8")
+        ),
+      "3" =
+        data.table(
+          CONTENT_AREA = rep(c("ELA", "MATHEMATICS"), each = 4),
+          GRADE = c("3", "5", "6", "8")
+        )
+    ) |>
+      setkey(CONTENT_AREA, GRADE)
+
   for (yr in 2018:2019) {
     cnd.nm <-
       ifelse(
@@ -1004,7 +1098,7 @@ for (cond in c("0", "1b", "1c", "2", "3", "4")) { # No "1a",
   # XI.d
     full_stu_achlev <-
         tmp_full[,
-            .(PCT = round((sum(get(prof.var) == 1)/.N), 3)),
+            .(PCT = round((sum(get(getProf(cond)) == 1)/.N), 3)),
             keyby = c("SchoolID", "CONTENT_AREA"),
         ] |>
             data.table::dcast(
@@ -1165,8 +1259,7 @@ min.n.comp.atsi <-
 min.n.indc.dist <- data.table()
 
 for (yr in 2018:2019) {
-  for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
-    prof.var <- ifelse(cond == "4", "PROFICIENCY_C4", "PROFICIENCY")
+  for (cond in c("0", "0v2", "1a", "1b", "1c", "2", "3", "4", "4v2")) {
     if (yr == 2018 && cond == "1a") next
     cnd.nm <-
       ifelse(
@@ -1231,15 +1324,6 @@ for (yr in 2018:2019) {
             `% NA -> 1` =  p_tbl[2, 3],
             `N NA -> 0` =  n_tbl[1, 3], # AddedNeg
             `% NA -> 0` =  p_tbl[1, 3]
-            # N_Schools    = sum(n_tbl),
-            # # N_Match      = sum(diag(n_tbl)),
-            # `%_Match`    = sum(diag(p_tbl)),
-            # # N_FalsePos   = n_tbl[2, 1],
-            # `%_FalsePos` = p_tbl[2, 1],
-            # # N_FalseNeg   = n_tbl[1, 2],
-            # `%_FalseNeg` = p_tbl[1, 2],
-            # `%_ExcludedPos` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 2], NA),
-            # `%_ExcludedNeg` = ifelse(nrow(p_tbl) == 3, p_tbl[3, 1], NA)
           )
         cond.comp.csi <-
           rbindlist(list(cond.comp.csi, cond.comp.tmp), fill = TRUE)
@@ -1526,13 +1610,264 @@ for (yr in 2018:2019) {
   }
 }
 
+###  Add in Condition 4 to 4v2 comparison
+cnd.nm <- "4v2"
+for (yr in 2018:2019) {
+  for (min.n in c(10, 30, 50)) {
+    refr_rates <-
+      fread(
+        file = paste0(
+          "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_4",
+          "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
+        )
+      )
+    focl_rates <-
+      fread(
+        file = paste0(
+          "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_",
+          cnd.nm, "_Min", min.n, "_Illinois_", yr, "_AVI.csv"
+        )
+      )
+
+    # 12 a.
+    tmp_data <-
+      merge(
+        refr_rates[
+          Group == "All",
+          .(SchoolID, CSI, ACH_Z, Other_Z, SumScore)
+        ],
+        focl_rates[
+          Group == "All",
+          .(SchoolID, CSI, ACH_Z, Other_Z, SumScore)
+        ],
+        by = "SchoolID", all = TRUE
+      )
+    # CSI - 14 a.
+    n_tbl <- table(tmp_data[, CSI.x, CSI.y], useNA = "always")
+    p_tbl <- prop.table(n_tbl) |> round(3)
+
+    cond.comp.tmp <-
+      data.table(
+        Comparison = paste0("Conditions 4 vs. ", cnd.nm, ", MinN = ", min.n),
+        Year = yr,
+        N_Schools = sum(n_tbl),
+        #   Matches
+        `N 1 -> 1` = n_tbl[2, 2], # Match: Yes
+        `% 1 -> 1` = p_tbl[2, 2],
+        `N 0 -> 0` = n_tbl[1, 1], # Match: No
+        `% 0 -> 0` = p_tbl[1, 1],
+        `N NA -> NA` = n_tbl[3, 3], # Match: NA
+        `% NA -> NA` = p_tbl[3, 3],
+        #   Transitions
+        `N 0 -> 1` = n_tbl[2, 1], # FalsePos
+        `% 0 -> 1` = p_tbl[2, 1],
+        `N 1 -> 0` = n_tbl[1, 2], # FalseNeg
+        `% 1 -> 0` = p_tbl[1, 2],
+        #   Exclusion in focal condition
+        `N 1 -> NA` = n_tbl[3, 2], # ExcludedPos
+        `% 1 -> NA` = p_tbl[3, 2],
+        `N 0 -> NA` = n_tbl[3, 1], # ExcludedNeg
+        `% 0 -> NA` = p_tbl[3, 1],
+        #   # Excluded in reference condition
+        `N NA -> 1` = n_tbl[2, 3], # AddedPos
+        `% NA -> 1` = p_tbl[2, 3],
+        `N NA -> 0` = n_tbl[1, 3], # AddedNeg
+        `% NA -> 0` = p_tbl[1, 3]
+      )
+    cond.comp.csi <-
+      rbindlist(list(cond.comp.csi, cond.comp.tmp), fill = TRUE)
+
+    # ATSI - 16 a.
+    n_tbl <-
+      focl_rates[Group != "All" & !is.na(ATSI),
+        .(ATSI_FOC = ifelse(any(ATSI == 1), 1, 0)),
+        keyby = "SchoolID"
+      ][
+        refr_rates[Group != "All" & !is.na(ATSI),
+          .(ATSI_REF = ifelse(any(ATSI == 1), 1, 0)),
+          keyby = "SchoolID"
+        ]
+      ][, SchoolID := NULL] |>
+      table(useNA = "always")
+    p_tbl <- prop.table(n_tbl) |> round(3)
+
+    cond.comp.tmp <-
+      data.table(
+        Comparison = paste0("Conditions 4 vs. ", cnd.nm, ", MinN = ", min.n),
+        Year = yr,
+        N_Schools = sum(n_tbl),
+        #   Matches
+        `N 1 -> 1` = n_tbl[2, 2], # Match: Yes
+        `% 1 -> 1` = p_tbl[2, 2],
+        `N 0 -> 0` = n_tbl[1, 1], # Match: No
+        `% 0 -> 0` = p_tbl[1, 1],
+        `N NA -> NA` = n_tbl[3, 3], # Match: NA
+        `% NA -> NA` = p_tbl[3, 3],
+        #   Transitions
+        `N 0 -> 1` = n_tbl[2, 1], # FalsePos
+        `% 0 -> 1` = p_tbl[2, 1],
+        `N 1 -> 0` = n_tbl[1, 2], # FalseNeg
+        `% 1 -> 0` = p_tbl[1, 2],
+        #   Exclusion in focal condition
+        `N 1 -> NA` = n_tbl[3, 2], # ExcludedPos
+        `% 1 -> NA` = p_tbl[3, 2],
+        `N 0 -> NA` = n_tbl[3, 1], # ExcludedNeg
+        `% 0 -> NA` = p_tbl[3, 1],
+        #   # Excluded in reference condition
+        `N NA -> 1` = n_tbl[2, 3], # AddedPos
+        `% NA -> 1` = p_tbl[2, 3],
+        `N NA -> 0` = n_tbl[1, 3], # AddedNeg
+        `% NA -> 0` = p_tbl[1, 3]
+      )
+    cond.comp.atsi <-
+      rbindlist(list(cond.comp.atsi, cond.comp.tmp), fill = TRUE)
+
+    # 17. - 21. -- Distribution of Achievement and Other Indicator Scores
+    acad.indc.tmp <-
+      cbind(
+        data.table(
+          Comparison =
+            paste0("Conditions 4 vs. ", cnd.nm, ", MinN = ", min.n),
+          Year = yr
+        ),
+        tmp_data[
+          ,
+          .(
+            ACH_Correl = cor(ACH_Z.x, ACH_Z.y, use = "complete.obs"),
+            ACH_RMSE =
+              sqrt(sum((ACH_Z.x - ACH_Z.y)^2, na.rm = TRUE) / sum(n_tbl)),
+            Other_Correl = cor(Other_Z.x, Other_Z.y, use = "complete.obs"),
+            Other_RMSE =
+              sqrt(sum((Other_Z.x - Other_Z.y)^2, na.rm = TRUE) / sum(n_tbl)),
+            SumScore_Correl = cor(SumScore.x, SumScore.y, use = "complete.obs"),
+            SumScore_RMSE =
+              sqrt(sum((SumScore.x - SumScore.y)^2, na.rm = TRUE) / sum(n_tbl))
+          )
+        ] |> round(3)
+      )
+    acad.indc.dist <-
+      rbindlist(list(acad.indc.dist, acad.indc.tmp), fill = TRUE)
+
+    # Scatter and "conditional difference" plots
+    ach.scat <-
+      ggplot(tmp_data, aes(x = ACH_Z.x, y = ACH_Z.y)) +
+      theme_bw() +
+      geom_hex(bins = 50, show.legend = FALSE) +
+      xlim(c(-3, 3)) +
+      ylim(c(-3, 3)) +
+      scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+      geom_smooth(method = "gam", se = FALSE, color = "red") +
+      labs(
+        x = paste("Achievement Z - Condition 4, Min N =", min.n),
+        y = paste("Achievement Z - Condition", cnd.nm, ", Min N =", min.n)
+      ) +
+      ggtitle("Focus vs Reference Condition") +
+      theme(plot.title = element_text(hjust = 0.5, size = 14))
+    ach.cond <-
+      ggplot(tmp_data, aes(x = ACH_Z.x, y = (ACH_Z.x - ACH_Z.y))) +
+      theme_bw() +
+      geom_hex(bins = 50, show.legend = FALSE) +
+      xlim(c(-3, 3)) +
+      ylim(c(-1.5, 1.5)) +
+      scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+      geom_smooth(method = "gam", se = FALSE, color = "red") +
+      labs(
+        x = paste("Achievement Z - Condition 4, Min N =", min.n),
+        y = paste("Achievement Z Conditional Difference", "( 4 -", cnd.nm, ")")
+      ) +
+      ggtitle("Conditional Difference") +
+      theme(plot.title = element_text(hjust = 0.5, size = 14))
+
+    oth.scat <-
+      ggplot(tmp_data, aes(x = Other_Z.x, y = Other_Z.y)) +
+      theme_bw() +
+      geom_hex(bins = 50, show.legend = FALSE) +
+      xlim(c(-3, 3)) +
+      ylim(c(-3, 3)) +
+      scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+      geom_smooth(method = "gam", se = FALSE, color = "red") +
+      labs(
+        x = paste(
+          ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
+          "Z - Condition 4, Min N =", min.n
+        ),
+        y = paste(
+          ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
+          "Z - Condition", cnd.nm, ", Min N =", min.n
+        )
+      )
+    oth.cond <-
+      ggplot(tmp_data, aes(x = Other_Z.x, y = (Other_Z.x - Other_Z.y))) +
+      theme_bw() +
+      geom_hex(bins = 50, show.legend = FALSE) +
+      xlim(c(-3, 3)) +
+      ylim(c(-1.5, 1.5)) +
+      scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+      geom_smooth(method = "gam", se = FALSE, color = "red") +
+      labs(
+        x = paste(
+          ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
+          "Z - Condition 4, Min N =", min.n
+        ),
+        y = paste(
+          ifelse(cond == "1a", "Improvement", "Growth (MSGP)"),
+          "Z Conditional Difference", "( 4 -", cnd.nm, ")"
+        )
+      )
+
+    sumsc.scat <-
+      ggplot(tmp_data, aes(x = SumScore.x, y = SumScore.y)) +
+      theme_bw() +
+      geom_hex(bins = 50, show.legend = FALSE) +
+      xlim(c(-3, 3)) +
+      ylim(c(-3, 3)) +
+      scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+      geom_smooth(method = "gam", se = FALSE, color = "red") +
+      labs(
+        x = paste("Sum Score Z - Condition 4, Min N =", min.n),
+        y = paste("Sum Score Z - Condition", cnd.nm, ", Min N =", min.n)
+      )
+    sumsc.cond <-
+      ggplot(tmp_data, aes(x = SumScore.x, y = (SumScore.x - SumScore.y))) +
+      theme_bw() +
+      geom_hex(bins = 50, show.legend = FALSE) +
+      xlim(c(-3, 3)) +
+      ylim(c(-1.5, 1.5)) +
+      scale_fill_gradient(low = "grey", high = "black", na.value = NA) +
+      geom_smooth(method = "gam", se = FALSE, color = "red") +
+      labs(
+        x = paste("Sum Score Z - Condition 4, Min N =", min.n),
+        y = paste("Sum Score Z Conditional Difference", "( 4 -", cnd.nm, ")")
+      )
+
+    grDevices::pdf(
+      file =
+        file.path(
+          "./Data/Phase_4-Comparison_Metrics/Plots",
+          paste0("Conditions_4_v_", cnd.nm, "__MinN_", min.n, "__", yr, ".pdf")
+        ),
+      width = 8, height = 11
+    )
+    gridExtra::grid.arrange(
+      ach.scat, ach.cond, oth.scat, oth.cond, sumsc.scat, sumsc.cond,
+      ncol = 2
+    )
+    grDevices::dev.off()
+  }
+}
+
+
+###   Save results tables that will be exported to MS Excel
 save(
-    cond.comp.csi,  # 14a
-    cond.comp.atsi, # 16a
-    acad.indc.dist, # 19a
-    min.n.comp.csi, # 14b
-    min.n.comp.atsi,# 16b
-    min.n.indc.dist,# 19b
+    ratings_percentages,   # Table 3
+    missing_ratings_table, # Table 6
+    freq_pct_table,  #  11
+    cond.comp.csi,   #  14a
+    cond.comp.atsi,  #  16a
+    acad.indc.dist,  #  19a
+    min.n.comp.csi,  #  14b
+    min.n.comp.atsi, #  16b
+    min.n.indc.dist, #  19b
     file = "./Data/Phase_4-Comparison_Metrics/phase_4_tables.Rdata"
 )
 
@@ -1558,7 +1893,7 @@ fwrite(
 #   * Correlations and RMSE for the academic achievement indicator scores,
 #     other academic indicator scores, and school summative ratings
 
-source("Phase_4-Metric_Bootstrap-Illinois.R")
+# source("Phase_4-Metric_Bootstrap-Illinois.R")
 
 load("./Data/Phase_4-Metric_Bootstrap/Phase_4/Metric_Bootstrap_2018.rda")
 Metric_Bootstrap_2018 <- Metric_Bootstrap

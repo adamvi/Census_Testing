@@ -69,23 +69,11 @@ setnames(
 # Impute where missing
 sqss.vars <- "ChronicAbsent"
 for (sqss in sqss.vars) {
-  tmp.data <-
-    state_acct_data_18[!(is.na(ELA_PartRate) | is.na(Math_PartRate))]
-  tmp.rq <-
-    quantreg::rq(
-      formula = as.formula(paste(sqss, "~ Group")),
-      data = tmp.data
-    )
-  tmp.pred <- predict(object = tmp.rq, newdata = tmp.data)
-  tmp.pred[tmp.pred < 0 & !is.na(tmp.pred)] <- 0
-  state_acct_data_18[
-    !(is.na(ELA_PartRate) | is.na(Math_PartRate)),
-    TMP_PRED := round(tmp.pred, 3)
-  ][
-    is.na(get(sqss)),
-    eval(sqss) := TMP_PRED
-  ][,
-    TMP_PRED := NULL
+  state_acct_data_18[!(is.na(ELA_PartRate) | is.na(Math_PartRate)),
+      TMP_M := median(get(sqss), na.rm = TRUE), by = "Group"
+  ][is.na(get(sqss)),
+      eval(sqss) := round(TMP_M, 3)
+  ][, TMP_M := NULL
   ]
 }
 
@@ -105,23 +93,11 @@ setnames(
 
 # Impute 2019 where missing
 for (sqss in sqss.vars) {
-  tmp.data <-
-    state_acct_data_19[!(is.na(ELA_PartRate) | is.na(Math_PartRate))]
-  tmp.rq <-
-    quantreg::rq(
-      formula = as.formula(paste(sqss, "~ Group")),
-      data = tmp.data
-    )
-  tmp.pred <- predict(object = tmp.rq, newdata = tmp.data)
-  tmp.pred[tmp.pred < 0 & !is.na(tmp.pred)] <- 0
-  state_acct_data_19[
-    !(is.na(ELA_PartRate) | is.na(Math_PartRate)),
-    TMP_PRED := round(tmp.pred, 3)
-  ][
-    is.na(get(sqss)),
-    eval(sqss) := TMP_PRED
-  ][,
-    TMP_PRED := NULL
+  state_acct_data_19[,
+      TMP_M := median(get(sqss), na.rm = TRUE), by = "Group"
+  ][is.na(get(sqss)),
+      eval(sqss) := round(TMP_M, 3)
+  ][, TMP_M := NULL
   ]
 }
 
@@ -176,27 +152,24 @@ config.c0.2019 <-
 boot.workers <- list(PERCENTILES = 10)
 set.seed(4224)
 
+bootstrapCond0(
+    sgp_data = Illinois_Data_LONG,
+    config = config.c0.2018,
+    state.abbr = "IL",
+    state.name = "Illinois",
+    fyear = "2018",
+    workers = boot.workers,
+    bootstrap.n = 100,
+    state_indicators = state_acct_data_18
+)
 
-# bootstrapCond0(
-#     sgp_data = Illinois_Data_LONG,
-#     config = config.c0.2018,
-#     state.abbr = "IL",
-#     state.name = "Illinois",
-#     fyear = "2018",
-#     workers = boot.workers,
-#     bootstrap.n = 100,
-#     # coef_matrices = CoefMatrices,
-#     state_indicators = state_acct_data_18
-# )
-
-# bootstrapCond0(
-#     sgp_data = Illinois_Data_LONG,
-#     config = config.c0.2019,
-#     state.abbr = "IL",
-#     state.name = "Illinois",
-#     fyear = "2019",
-#     workers = boot.workers,
-#     bootstrap.n = 100,
-#     # coef_matrices = CoefMatrices,
-#     state_indicators = state_acct_data_19
-# )
+bootstrapCond0(
+    sgp_data = Illinois_Data_LONG,
+    config = config.c0.2019,
+    state.abbr = "IL",
+    state.name = "Illinois",
+    fyear = "2019",
+    workers = boot.workers,
+    bootstrap.n = 100,
+    state_indicators = state_acct_data_19
+)

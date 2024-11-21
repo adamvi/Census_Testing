@@ -1,5 +1,5 @@
 
-calculate_SGPs =
+calculateSGPs =
     function(
         sgp_data, config, condition, state.abbr = "GA", workers
     ){
@@ -7,11 +7,11 @@ calculate_SGPs =
         SGPstateData[[state.abbr]][["SGP_Configuration"]][["rq.method"]] <- "fn"
 
         # Create a folder "Condition_0" if it doesn't already exist
-        folder_name <- paste0("./Condition_", condition)
-        if (!dir.exists(folder_name)) dir.create(folder_name)
+        folder.name <- paste0("./Condition_", condition)
+        if (!dir.exists(folder.name)) dir.create(folder.name)
 
         # Calculate the SGPs using given config info
-        setwd(folder_name)
+        setwd(folder.name)
 
         SGP_object <-
             abcSGP(
@@ -41,7 +41,7 @@ calculate_SGPs =
         # We will save the coefficient matrices from all separate analyses in case 
         # we need to replicate or compare results from this condition analysis.
         CoefMatrices <- SGP_object@SGP[["Coefficient_Matrices"]]
-        save(CoefMatrices, file = paste0(folder_name, "_CoefMatrices.rda"))
+        save(CoefMatrices, file = paste0(folder.name, "_CoefMatrices.rda"))
 
         # Re-name and remove the SGP variables as necessary
         setnames(

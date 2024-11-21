@@ -5,9 +5,16 @@ schoolAggrGator =
     groups = c("SchoolID", "YEAR", "CONTENT_AREA")
   ) {
     aggr.names <-
-      c("TotalN", "ProfN", "GrowthN", "MGP", "PctProf")
-    prof.var <- ifelse(grepl("Cnd_4", growth.var), "PROFICIENCY_C4", "PROFICIENCY")
-        # "MeanScore", "GrowthZ", "StatusZ"
+      c("TotalN", "ProfN", "GrowthN", "MGP") # , "PctProf"
+    
+    prof.var <-
+      switch(
+        growth.var,
+        "PROFICIENCY",
+        SGP_Cnd_0v2 = "PROFICIENCY_C0v2",
+        SGP_Cnd_4 = "PROFICIENCY_C4",
+        SGP_Cnd_4v2 = "PROFICIENCY_C4v2"
+      )
     frmla <-
       paste0(
         paste(groups %w/o% "CONTENT_AREA", collapse = " + "),
@@ -18,8 +25,8 @@ schoolAggrGator =
       .(TotalN = .N,
         ProfN = sum(get(prof.var) == 1L),
         GrowthN = sum(!is.na(get(growth.var))),
-        MGP = round(mean(get(growth.var), na.rm = TRUE), 3),
-        PctProf = round(mean(get(prof.var), na.rm = TRUE), 5)*100
+        MGP = round(mean(get(growth.var), na.rm = TRUE), 3)
+        # PctProf = round(mean(get(prof.var), na.rm = TRUE), 5)*100
         # GrowthZ = round(mean(qnorm(get(growth.var)/100), na.rm = TRUE), 3),
         # MeanScore = round(mean(Z_SCORE, na.rm = TRUE), 2),
         # StatusZ = round(mean(Z_PROFICIENCY, na.rm = TRUE), 3)

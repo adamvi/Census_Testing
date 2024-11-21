@@ -25,7 +25,7 @@ source("../functions/accountabilityModel.R")
 #  Load cleaned, merged and formatted data
 Georgia_Data_LONG <-
     freadZIP(
-        "Data/Cleaned_Data/Student_LongTestData_Georgia_2016-2022_AVI.csv.zip"
+        "Data/Phase_1-Cleaned_Data/Student_LongTestData_Georgia_2016-2022_AVI.csv.zip"
     )[YEAR < 2020][,
         c("SEM", "SCALE_SCORE_Short", "ACHIEVEMENT_LEVEL_Short") := NULL
     ][,
@@ -39,111 +39,9 @@ Georgia_Data_LONG <-
 
 #  Load state-provided accountability data
 state_acct_data_18 <-
-  fread("Data/Cleaned_Data/School_AcctData_Georgia_2018_EK.csv")
-
-state_acct_data_18[,
-  ELA_PartRate := as.numeric(ELA_PartRate)
-][,
-  Math_PartRate := as.numeric(Math_PartRate)
-][,
-  ProgELP := as.numeric(ProgELP)
-][,
-  Beyond_The_Core  := as.numeric(Beyond_The_Core)
-][,
-  Literacy := as.numeric(Literacy)
-][,
-  Student_Attendance := as.numeric(Student_Attendance)
-]
-
-# Impute indicators where missing
-sqss.vars <- c("Literacy", "Beyond_The_Core", "Student_Attendance")
-for (sqss in sqss.vars) {
-  tmp.data <-
-    state_acct_data_18[!(is.na(ELA_PartRate) | is.na(Math_PartRate))]
-  tmp.rq <-
-    quantreg::rq(
-      formula = as.formula(paste(sqss, "~ Group")),
-      data = tmp.data
-    )
-  tmp.pred <- predict(object = tmp.rq, newdata = tmp.data)
-  tmp.pred[tmp.pred < 0 & !is.na(tmp.pred)] <- 0
-  state_acct_data_18[
-    !(is.na(ELA_PartRate) | is.na(Math_PartRate)),
-    TMP_PRED := round(tmp.pred, 3)
-  ][
-    is.na(get(sqss)),
-    eval(sqss) := TMP_PRED
-  ][,
-    TMP_PRED := NULL
-  ]
-}
-
-state_acct_data_18[,
-  SQSS := rowMeans(.SD, na.rm = TRUE),
-  .SDcols = (sqss.vars)
-]
-
+  fread("Data/Phase_1-Cleaned_Data/School_AcctData_Georgia_2018_AVI.csv")
 state_acct_data_19 <-
-  fread("Data/Cleaned_Data/School_AcctData_Georgia_2019_EK.csv")
-
-state_acct_data_19[,
-  ELA_PartRate := as.numeric(ELA_PartRate)
-][,
-  Math_PartRate := as.numeric(Math_PartRate)
-][,
-  ProgELP := as.numeric(ProgELP)
-][,
-  Beyond_The_Core  := as.numeric(Beyond_The_Core)
-][,
-  Literacy := as.numeric(Literacy)
-][,
-  Student_Attendance := as.numeric(Student_Attendance)
-]
-
-# Impute 2019 where missing
-for (sqss in sqss.vars) {
-  tmp.data <-
-    state_acct_data_19[!(is.na(ELA_PartRate) | is.na(Math_PartRate))]
-  tmp.rq <-
-    quantreg::rq(
-      formula = as.formula(paste(sqss, "~ Group")),
-      data = tmp.data
-    )
-  tmp.pred <- predict(object = tmp.rq, newdata = tmp.data)
-  tmp.pred[tmp.pred < 0 & !is.na(tmp.pred)] <- 0
-  state_acct_data_19[
-    !(is.na(ELA_PartRate) | is.na(Math_PartRate)),
-    TMP_PRED := round(tmp.pred, 3)
-  ][
-    is.na(get(sqss)),
-    eval(sqss) := TMP_PRED
-  ][,
-    TMP_PRED := NULL
-  ]
-}
-
-state_acct_data_19[,
-  SQSS := rowMeans(.SD, na.rm = TRUE),
-  .SDcols = c("Beyond_The_Core", "Literacy", "Student_Attendance")
-]
-
-# ProgELP only in "EL" rows in 2019.  Who should this count for? All/EL only? Every Group?
-ProgELP_Lookup <-
-  state_acct_data_19[
-    Group == "EL" & !is.na(ProgELP),
-      .(SchoolID, Group, ProgELP)
-  ][,
-    Group := "All"
-  ]
-
-setkey(ProgELP_Lookup, SchoolID, Group)
-setkey(state_acct_data_19, SchoolID, Group)
-state_acct_data_19 <- ProgELP_Lookup[state_acct_data_19]
-state_acct_data_19[
-  !is.na(i.ProgELP), ProgELP := i.ProgELP
-][,
-  i.ProgELP := NULL
-]
+  fread("Data/Phase_1-Cleaned_Data/School_AcctData_Georgia_2019_AVI.csv")
 
 
 #+ phase-4-config, echo = TRUE, purl = TRUE
@@ -188,30 +86,30 @@ config.c0.2019 <-
       MATHEMATICS_2019.config
     )
 
-boot.workers <- list(PERCENTILES = 15)
+boot.workers <- list(TAUS = 15)
+# boot.workers <- list(PERCENTILES = 15)
 set.seed(4224)
 
 
-# bootstrapCond0(
-#     sgp_data = Georgia_Data_LONG,
-#     config = config.c0.2018,
-#     state.abbr = "GA",
-#     state.name = "Georgia",
-#     fyear = "2018",
-#     workers = boot.workers,
-#     bootstrap.n = 100,
-#     # coef_matrices = CoefMatrices,
-#     state_indicators = state_acct_data_18
-# )
+bootstrapCond0(
+    sgp_data = Georgia_Data_LONG,
+    config = config.c0.2018,
+    state.abbr = "GA",
+    state.name = "Georgia",
+    fyear = "2018",
+    workers = boot.workers,
+    bootstrap.n = 100,
+    # coef_matrices = CoefMatrices,
+    state_indicators = state_acct_data_18
+)
 
-# bootstrapCond0(
-#     sgp_data = Georgia_Data_LONG,
-#     config = config.c0.2019,
-#     state.abbr = "GA",
-#     state.name = "Georgia",
-#     fyear = "2019",
-#     workers = boot.workers,
-#     bootstrap.n = 100,
-#     # coef_matrices = CoefMatrices,
-#     state_indicators = state_acct_data_19
-# )
+bootstrapCond0(
+    sgp_data = Georgia_Data_LONG,
+    config = config.c0.2019,
+    state.abbr = "GA",
+    state.name = "Georgia",
+    fyear = "2019",
+    workers = boot.workers,
+    bootstrap.n = 100,
+    state_indicators = state_acct_data_19
+)

@@ -3,136 +3,19 @@
 #####
 
 require(data.table)
-`%w/o%` = function(x, y) x[!x %in% y]
 
 state_acct_data_18 <-
-  fread("Data/Cleaned_Data/School_AcctData_Georgia_2018_EK.csv")
-
-state_acct_data_18[,
-  ELA_PartRate := as.numeric(ELA_PartRate)
-][,
-  Math_PartRate := as.numeric(Math_PartRate)
-][,
-  ProgELP := as.numeric(ProgELP)
-][,
-  Beyond_The_Core  := as.numeric(Beyond_The_Core)
-][,
-  Literacy := as.numeric(Literacy)
-][,
-  Student_Attendance := as.numeric(Student_Attendance)
-]
-
-# How should NA in indicators be dealt with?
-# Impute where missing
-sqss.vars <- c("Literacy", "Beyond_The_Core", "Student_Attendance")
-for (sqss in sqss.vars) {
-  tmp.data <-
-    state_acct_data_18[!(is.na(ELA_PartRate) | is.na(Math_PartRate))]
-  # tmp.fmla <-
-  #   as.formula(
-  #     paste(sqss, "~", paste(sqss.vars %w/o% sqss, collapse = "+"), "+ Group")
-  #   )
-  # tmp.lm <- lm(formula = tmp.fmla, data = tmp.data)
-  # tmp.pred <- predict.lm(object = tmp.lm, newdata = tmp.data)
-  # tmp.pred[tmp.pred < 0 & !is.na(tmp.pred)] <- 0
-  # tmp.lm <- lm(formula = as.formula(paste(sqss, "~ Group")), data = tmp.data)
-  # tmp.pred2 <- predict.lm(object = tmp.lm, newdata = tmp.data) # predicted group means
-  # tmp.pred[is.na(tmp.pred)] <- tmp.pred2[is.na(tmp.pred)]
-  tmp.rq <-
-    quantreg::rq(
-      formula = as.formula(paste(sqss, "~ Group")),
-      data = tmp.data
-    )
-  tmp.pred <- predict(object = tmp.rq, newdata = tmp.data)
-  tmp.pred[tmp.pred < 0 & !is.na(tmp.pred)] <- 0
-  state_acct_data_18[
-    !(is.na(ELA_PartRate) | is.na(Math_PartRate)),
-    TMP_PRED := round(tmp.pred, 3)
-  ][
-    is.na(get(sqss)),
-    eval(sqss) := TMP_PRED
-  ][,
-    TMP_PRED := NULL
-  ]
-}
-
-state_acct_data_18[,
-  SQSS := rowMeans(.SD, na.rm = TRUE),   # SQSS = NA if ALL are NA, mean of those available
-  # SQSS := rowSums(.SD, na.rm = FALSE)/3, # SQSS = NA if any are NA?
-  # SQSS := rowSums(.SD, na.rm = TRUE)/3,    # Treated as 0? Penalized for NA
-  .SDcols = (sqss.vars)
-]
+  fread("Data/Phase_1-Cleaned_Data/School_AcctData_Georgia_2018_AVI.csv")
 
 state_acct_data_19 <-
-  fread("Data/Cleaned_Data/School_AcctData_Georgia_2019_EK.csv")
-
-state_acct_data_19[,
-  ELA_PartRate := as.numeric(ELA_PartRate)
-][,
-  Math_PartRate := as.numeric(Math_PartRate)
-][,
-  ProgELP := as.numeric(ProgELP)
-][,
-  Beyond_The_Core  := as.numeric(Beyond_The_Core)
-][,
-  Literacy := as.numeric(Literacy)
-][,
-  Student_Attendance := as.numeric(Student_Attendance)
-]
-
-# Impute 2019 where missing
-for (sqss in sqss.vars) {
-  tmp.data <-
-    state_acct_data_19[!(is.na(ELA_PartRate) | is.na(Math_PartRate))]
-  tmp.rq <-
-    quantreg::rq(
-      formula = as.formula(paste(sqss, "~ Group")),
-      data = tmp.data
-    )
-  tmp.pred <- predict(object = tmp.rq, newdata = tmp.data)
-  tmp.pred[tmp.pred < 0 & !is.na(tmp.pred)] <- 0
-  state_acct_data_19[
-    !(is.na(ELA_PartRate) | is.na(Math_PartRate)),
-    TMP_PRED := round(tmp.pred, 3)
-  ][
-    is.na(get(sqss)),
-    eval(sqss) := TMP_PRED
-  ][,
-    TMP_PRED := NULL
-  ]
-}
-
-state_acct_data_19[,
-  SQSS := rowMeans(.SD, na.rm = TRUE),  #  Keep this option per LK (2/1/23)
-  # SQSS := rowSums(.SD, na.rm = TRUE)/3,
-  .SDcols = c("Beyond_The_Core", "Literacy", "Student_Attendance")
-]
-
-# ProgELP only in "EL" rows in 2019.  Who should this count for? All/EL only? Every Group?
-ProgELP_Lookup <-
-  state_acct_data_19[
-    Group == "EL" & !is.na(ProgELP),
-      .(SchoolID, Group, ProgELP)
-  ][,
-    Group := "All"
-  ]
-
-setkey(ProgELP_Lookup, SchoolID, Group)
-setkey(state_acct_data_19, SchoolID, Group)
-state_acct_data_19 <- ProgELP_Lookup[state_acct_data_19]
-state_acct_data_19[
-  !is.na(i.ProgELP), ProgELP := i.ProgELP
-][,
-  i.ProgELP := NULL
-]
-
+  fread("Data/Phase_1-Cleaned_Data/School_AcctData_Georgia_2019_AVI.csv")
 
 
 #' # Example with 2018 Condition 0
 #'
 #' Uncomment and run to walk through example code which was the basis for
 #' the `accountabilityModel` function used below.
-#' 
+#'
 #+ phase3-ex, include = FALSE, echo = FALSE, purl = FALSE
 # sch_smry_0 <-
 #   fread("Data/Phase_2-School_Summaries/School_Condition_0_Georgia_2018_AVI.csv")
@@ -151,10 +34,10 @@ state_acct_data_19[
 # sch_smry_0E_10N <-
 #   sch_smry_0E[
 #     !(is.na(ELA_PartRate) | is.na(Math_PartRate)) &
-#     ELA_ProfN > min.n &   # a.
-#     Math_ProfN > min.n &  # b.
-#     ELA_GrowthN > min.n & # c.i.
-#     Math_GrowthN > min.n  # c.ii.
+#     ELA_TotalN >= min.n &   # a.
+#     Math_TotalN >= min.n &  # b.
+#     ELA_GrowthN >= min.n & # c.i.
+#     Math_GrowthN >= min.n  # c.ii.
 #   ]
 
 # ###   Compute Academic Achievement Indicator Scores
@@ -168,20 +51,21 @@ state_acct_data_19[
 
 # sch_smry_0E_10N[,
 #   ELA_ProfRate := ELA_ProfN / ELA_TotalN                     # 3.a
-# ][ELA_PartRate <= 95, 
-#   ELA_ProfRate := ELA_ProfRate * ((ELA_PartRate/100)/0.95)   # 3.b
+# ][ELA_PartRate < 95,
+#   ELA_ProfRate := ELA_ProfRate * (ELA_PartRate / 95)         # 3.b
 # ][,
 #   Math_ProfRate := Math_ProfN / Math_TotalN                  # 4.a
-# ][Math_PartRate <= 95, 
-#   Math_ProfRate := Math_ProfRate * ((ELA_PartRate/100)/0.95) # 4.b
+# ][Math_PartRate < 95,
+#   Math_ProfRate := Math_ProfRate * (Math_PartRate / 95)      # 4.b
 # # XXX  `(*_PartRate / 95%)` piece seems wrong? Up-weights the *_PartRate. e.g. 0.94/0.95 = ~0.99
+# # YYY  No this still works. Just punishes less than *_PartRate * 0.95
 # ][,
 #   ACH_Score :=                                               # 5.a
-#     ((ELA_ProfRate * ELA_TotalN) + (Math_TotalN * Math_ProfRate)) / 
+#     ((ELA_ProfRate * ELA_TotalN) + (Math_TotalN * Math_ProfRate)) /
 #                     (ELA_TotalN  +  Math_TotalN)
 # ]
 
-# ###   Compute Other Academic Indicator Scores 
+# ###   Compute Other Academic Indicator Scores
 # # 6. For Condition 1a, compute the Other Academic indicator score as the
 # #    weighted average of the ELA and mathematics improvement in the focus year
 # #   a. Other_Score = (ELA_Improve * ELA_TotalN + Math_Improve * Math_TotalN) / (ELA_TotalN + Math_TotalN)
@@ -197,7 +81,7 @@ state_acct_data_19[
 # ]
 
 
-# ###   Standardize Indicator Scores and Compute Summative Ratings 
+# ###   Standardize Indicator Scores and Compute Summative Ratings
 # # 8. Compute the mean and standard deviation of each accountability indicator
 # #    across all schools (that is, across every "All Students" records).
 # # * Only include records with Group = "All".
@@ -268,7 +152,7 @@ state_acct_data_19[
 # ##  High Schools (Not implemented)
 
 
-# ###   Identify Schools for Support and Improvement 
+# ###   Identify Schools for Support and Improvement
 # # 11. Identify schools for CSI using the "All Students" records.
 # #   a. Only include records with Group = "All".
 # #   b. For each record, compute the percentile rank, PRank, of its SumScore
@@ -319,7 +203,7 @@ source("../functions/accountabilityModel.R")
 #  Calculate and output
 fprefix <- "./Data/Phase_3-Accountability_Ratings/School_AcctRatings_Condition_"
 
-for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
+for (cond in c("0", "0v2", "1a", "1b", "1c", "2", "3", "4", "4v2")) {
   for (yr in 2018:2019) {
     cnd.nm <-
       ifelse(
@@ -356,55 +240,3 @@ for (cond in c("0", "1a", "1b", "1c", "2", "3", "4")) {
     }
   }
 }
-
-
-
-
-###   Misc. work that didn't pan out 
-
-# source("../functions//getQuantcut.R")
-
-# Percentile_Lookup <-
-#   sch_smry_0E_10N[,
-#     as.list(getQuantcut(SumScore, quantiles = 1:99/100)),
-#     keyby = "Group"
-#   ]
-
-# sch_smry_0E_10N[,
-#   PRank := getQuantcut(SumScore, quantiles = 1:99/100),
-#   by = "Group"
-# ]
-
-
-# tst <-
-#   accountabilityModel(
-#     condition = "0",
-#     min.n = 10,
-#     state_indicators = state_acct_data_18,
-#     cond_summary_table = sch_smry_0
-#   )
-
-# sts <- fread("Data/Phase_2-School_Summaries/School_Condition_0_Georgia_2019_AVI.csv")
-# tst2 <-
-#   accountabilityModel(
-#     condition = "0",
-#     min.n = 10,
-#     state_indicators = state_acct_data_19,
-#     cond_summary_table = sts
-      
-#   )
-
-# weighted.mean(x, w, …, na.rm = FALSE)
-
-# w1 = c(.43, .43, .14)
-# tst <- c( -1.0539309, -0.5602951, -0.65007310)
-# mean(tst)
-# weighted.mean(tst, w1)
-
-# tst %*% w1
-# sum(tst * w1)
-
-# sch_smry_0E_10N[is.na(ProgELP_Z),
-#   SumScore := rowSums(.SD*w1),
-#   .SDcols = c("ACH_Z", "Other_Z", "SQSS_Z")
-# ]

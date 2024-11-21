@@ -113,11 +113,43 @@ cohort.config.c0 <-
 Illinois_SGP <-
     calculate_SGPs(
         sgp_data = Illinois_Data_LONG,
-        state_abbr = "IL",
+        state.abbr = "IL",
         config = cohort.config.c0,
         condition = "0",
-        workers = list(PERCENTILES = 15)
+        workers = list(TAUS = 15)
     )
+
+
+#+ cond-0v2-rename, echo = TRUE, message = FALSE, purl = TRUE
+setnames(
+    Illinois_SGP@Data,
+    c("SCALE_SCORE", "ACHIEVEMENT_LEVEL",
+      "SCALE_SCORE_v2", "ACHIEVEMENT_LEVEL_v2"
+    ),
+    c("SS_ACTUAL", "ACH_LEV_ACTUAL",
+      "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
+    )
+)
+
+#+ cond-0v2-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
+Illinois_SGP <-
+    calculate_SGPs(
+        sgp_data = Illinois_SGP,
+        state.abbr = "IL",
+        config = cohort.config.c0,
+        condition = "0v2",
+        workers = list(TAUS = 15)
+    )
+
+setnames(
+    Illinois_SGP@Data,
+    c("SS_ACTUAL", "ACH_LEV_ACTUAL",
+      "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
+    ),
+    c("SCALE_SCORE", "ACHIEVEMENT_LEVEL",
+      "SCALE_SCORE_v2", "ACHIEVEMENT_LEVEL_v2"
+    )
+)
 
 #+ cond-1b, include = FALSE, purl = FALSE
 #####
@@ -183,10 +215,10 @@ cohort.config.c1b <-
 Illinois_SGP <-
     calculate_SGPs(
         sgp_data = Illinois_SGP,
-        state_abbr = "IL",
+        state.abbr = "IL",
         config = cohort.config.c1b,
         condition = "1b",
-        workers = list(PERCENTILES = 15)
+        workers = list(TAUS = 15)
     )
 
 
@@ -252,10 +284,10 @@ cohort.config.c1c <-
 Illinois_SGP <-
     calculate_SGPs(
         sgp_data = Illinois_SGP,
-        state_abbr = "IL",
+        state.abbr = "IL",
         config = cohort.config.c1c,
         condition = "1c",
-        workers = list(PERCENTILES = 15)
+        workers = list(TAUS = 15)
     )
 
 
@@ -318,10 +350,10 @@ cohort.config.c2 <-
 Illinois_SGP <-
     calculate_SGPs(
         sgp_data = Illinois_SGP,
-        state_abbr = "IL",
+        state.abbr = "IL",
         config = cohort.config.c2,
         condition = "2",
-        workers = list(PERCENTILES = 15)
+        workers = list(TAUS = 15)
     )
 
 
@@ -450,11 +482,52 @@ setnames(
 Illinois_SGP <-
     calculate_SGPs(
         sgp_data = Illinois_SGP,
-        state_abbr = "IL",
+        state.abbr = "IL",
         config = cohort.config.c4,
         condition = "4",
-        workers = list(PERCENTILES = 15)
+        workers = list(TAUS = 15)
     )
+
+setnames(
+    Illinois_SGP@Data,
+    c("SS_ACTUAL", "ACH_LEV_ACTUAL",
+      "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
+    ),
+    c("SCALE_SCORE", "ACHIEVEMENT_LEVEL",
+      "SCALE_SCORE_Short", "ACHIEVEMENT_LEVEL_Short"
+    )
+)
+
+#+ cond-4v2-rename, echo = TRUE, message = FALSE, purl = TRUE
+setnames(
+    Illinois_SGP@Data,
+    c("SCALE_SCORE", "ACHIEVEMENT_LEVEL",
+      "SCALE_SCORE_Short_v2", "ACHIEVEMENT_LEVEL_Short_v2"
+    ),
+    c("SS_ACTUAL", "ACH_LEV_ACTUAL",
+      "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
+    )
+)
+
+#+ cond-4-abcsgp, echo = TRUE, message = FALSE, purl = TRUE
+Illinois_SGP <-
+    calculate_SGPs(
+        sgp_data = Illinois_SGP,
+        state.abbr = "IL",
+        config = cohort.config.c4,
+        condition = "4v2",
+        workers = list(TAUS = 15)
+    )
+
+setnames(
+    Illinois_SGP@Data,
+    c("SS_ACTUAL", "ACH_LEV_ACTUAL",
+      "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
+    ),
+    c("SCALE_SCORE", "ACHIEVEMENT_LEVEL",
+      "SCALE_SCORE_Short_v2", "ACHIEVEMENT_LEVEL_Short_v2"
+    )
+)
 
 
 #' ##  Save data
@@ -467,15 +540,6 @@ Illinois_SGP <-
 if (!dir.exists("Data/Phase_2-Student_Growth"))
     dir.create("Data/Phase_2-Student_Growth", recursive = TRUE)
 
-setnames(
-    Illinois_SGP@Data,
-    c("SS_ACTUAL", "ACH_LEV_ACTUAL",
-      "SCALE_SCORE", "ACHIEVEMENT_LEVEL"
-    ),
-    c("SCALE_SCORE", "ACHIEVEMENT_LEVEL",
-      "SCALE_SCORE_Short", "ACHIEVEMENT_LEVEL_Short"
-    )
-)
 Illinois_Data_LONG <- copy(Illinois_SGP@Data)
 
 save("Illinois_Data_LONG", file = "Data/Phase_2-Student_Growth/Illinois_Data_LONG.rda")

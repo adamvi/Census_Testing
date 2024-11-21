@@ -92,9 +92,19 @@ Georgia_Data_LONG[,
     ACHIEVEMENT_LEVEL %in% c("Proficient Learner", "Distinguished Learner"), 1L
   )
 ][,
+  PROFICIENCY_C0v2 := fcase(
+    ACHIEVEMENT_LEVEL_v2 %in% c("Beginning Learner", "Developing Learner"), 0L,
+    ACHIEVEMENT_LEVEL_v2 %in% c("Proficient Learner", "Distinguished Learner"), 1L
+  )
+][,
   PROFICIENCY_C4 := fcase(
     ACHIEVEMENT_LEVEL_Short %in% c("Beginning Learner", "Developing Learner"), 0L,
     ACHIEVEMENT_LEVEL_Short %in% c("Proficient Learner", "Distinguished Learner"), 1L
+  )
+][,
+  PROFICIENCY_C4v2 := fcase(
+    ACHIEVEMENT_LEVEL_Short_v2 %in% c("Beginning Learner", "Developing Learner"), 0L,
+    ACHIEVEMENT_LEVEL_Short_v2 %in% c("Proficient Learner", "Distinguished Learner"), 1L
   )
 ]
 
@@ -173,6 +183,11 @@ school_aggregation_all_students <-
         )[, Condition := "0"],
         schoolAggrGator(
           data_table =
+            Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8],
+          growth.var = "SGP_Cnd_0v2"
+        )[, Condition := "0v2"],
+        schoolAggrGator(
+          data_table =
             Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8)],
           growth.var = "SGP_Cnd_1b"
         )[, Condition := "1b"],
@@ -199,7 +214,12 @@ school_aggregation_all_students <-
           data_table =
             Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8],
           growth.var = "SGP_Cnd_4"
-        )[, Condition := "4"]
+        )[, Condition := "4"],
+        schoolAggrGator(
+          data_table =
+            Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8],
+          growth.var = "SGP_Cnd_4v2"
+        )[, Condition := "4v2"]
       )
     )[, Group := "All"] |>
       setcolorder(c("Condition", "SchoolID", "Group", "YEAR")) |>
@@ -225,7 +245,7 @@ school_aggregation_all_students <-
 #' We can look at these tables in a number of ways to make sure we are getting
 #' what is expected.  A simply cross-tab by year shows that many schools do not
 #' get a summary in condition 1c given the testing pattern:
-#' 
+#'
 #+ agg-all-inspect, echo = TRUE, purl = TRUE
 table(school_aggregation_all_students[, .(Condition, YEAR), is.na(Math_MGP)])
 
@@ -239,11 +259,11 @@ fwrite(school_aggregation_all_students,
 #' instead use an indicator of status improvement. This **improvement** measure
 #' is defined as the change in average scale scores for each grade-level content
 #' area test between administrations for the school or student group.
-#' 
+#'
 #' For this aggregation we will create status summaries in a similar way as the
 #' other conditions, but include all available years. Lagged values are then
 #' created and the change scores calculated.
-#' 
+#'
 #+ agg-improve, echo = TRUE, purl = TRUE, eval = FALSE
 sch_summary_cnd_1a <-
     Georgia_Data_LONG[
@@ -443,6 +463,17 @@ school_aggregation_student_demogs <-
           \(f) {
             schoolAggrGator(
               data_table =
+                Georgia_Data_LONG[YEAR %in% c(2018, 2019) & GRADE %in% 3:8, ],
+              growth.var = "SGP_Cnd_0v2",
+              groups = c("SchoolID", "YEAR", "CONTENT_AREA", f)
+            )[, Condition := "0v2"] |> setnames(f, "Group")
+          }
+        ) |> rbindlist(),
+        lapply(
+          c("Race", "EconDis", "EL", "SWD"),
+          \(f) {
+            schoolAggrGator(
+              data_table =
                 Georgia_Data_LONG[
                   YEAR %in% c(2018, 2019) & GRADE %in% c(3, 5:6, 8), ],
               growth.var = "SGP_Cnd_1b",
@@ -498,6 +529,18 @@ school_aggregation_student_demogs <-
               growth.var = "SGP_Cnd_4",
               groups = c("SchoolID", "YEAR", "CONTENT_AREA", f)
             )[, Condition := "4"] |> setnames(f, "Group")
+          }
+        ) |> rbindlist(),
+        lapply(
+          c("Race", "EconDis", "EL", "SWD"),
+          \(f) {
+            schoolAggrGator(
+              data_table =
+                Georgia_Data_LONG[
+                  YEAR %in% c(2018, 2019) & GRADE %in% 3:8, ],
+              growth.var = "SGP_Cnd_4v2",
+              groups = c("SchoolID", "YEAR", "CONTENT_AREA", f)
+            )[, Condition := "4v2"] |> setnames(f, "Group")
           }
         ) |> rbindlist()
       )
@@ -567,7 +610,7 @@ school_aggregation_all[
 
 fprefix <- "./Data/Phase_2-School_Summaries/School_Condition_"
 
-for (cond in c("0", "1a", "1b", "1c", "2_E", "2_O", "3_E", "3_O", "4")) {
+for (cond in c("0", "0v2", "1a", "1b", "1c", "2_E", "2_O", "3_E", "3_O", "4", "4v2")) {
   for (yr in 2018:2019) {
     tmp.tbl <-
       school_aggregation_all[
